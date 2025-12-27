@@ -60,7 +60,8 @@ python -m app.main
 
 ## Controls
 
-- **System Tray Icon**: Right-click the icon in your taskbar to access the menu (Toggle Click-Through, Reload, Quit). This is useful when you can't click the window itself.
+- **System Tray Icon**: Right-click the icon in your taskbar to access the menu (Settings, Toggle Click-Through, Reload, Quit).
+- **Settings Window**: Accessible from the tray menu, allows real-time adjustment of scale, positioning, click-through, and always-on-top behavior.
 - **Left Click + Drag**: Move the character (only works when Click-Through is **OFF**).
 - **F8**: Toggle Click-Through Mode.
   - **OFF**: You can click and drag the character.

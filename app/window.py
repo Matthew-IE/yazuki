@@ -1,9 +1,11 @@
 import sys
 import ctypes
 import os
+import subprocess
 from PySide6.QtCore import Qt, QPoint # type: ignore
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QSystemTrayIcon, QMenu # type: ignore
 from PySide6.QtGui import QKeyEvent, QIcon, QAction # type: ignore
+from app.settings import SettingsWindow
 
 # Windows API constants
 GWL_EXSTYLE = -20
@@ -47,6 +49,15 @@ class OverlayWindow(QMainWindow):
         # Apply initial click-through state
         self.update_click_through()
 
+        # Settings Window
+        self.settings_window = SettingsWindow(config)
+        self.settings_window.scale_changed.connect(self.on_scale_changed)
+        self.settings_window.offset_x_changed.connect(self.on_offset_x_changed)
+        self.settings_window.offset_y_changed.connect(self.on_offset_y_changed)
+        self.settings_window.click_through_toggled.connect(self.set_click_through)
+        self.settings_window.always_on_top_toggled.connect(self.set_always_on_top)
+        self.settings_window.reload_requested.connect(self.reload_model)
+
         # System Tray Icon
         self.init_tray_icon()
 
@@ -73,6 +84,10 @@ class OverlayWindow(QMainWindow):
         action_reload = QAction("Reload Model", self)
         action_reload.triggered.connect(self.reload_model)
         tray_menu.addAction(action_reload)
+
+        action_settings = QAction("Settings", self)
+        action_settings.triggered.connect(self.show_settings)
+        tray_menu.addAction(action_settings)
         
         tray_menu.addSeparator()
         
@@ -98,10 +113,46 @@ class OverlayWindow(QMainWindow):
             self.action_click_through.setChecked(self.click_through)
             
         self.update_click_through()
+        self.settings_window.update_state(self.click_through)
 
     def reload_model(self):
         if hasattr(self.renderer, 'reload_model'):
             self.renderer.reload_model()
+
+    def show_settings(self):
+        self.settings_window.show()
+        self.settings_window.activateWindow()
+
+    def on_scale_changed(self, scale):
+        if self.renderer.live2d_manager:
+            self.renderer.live2d_manager.scale = scale
+            self.renderer.update()
+
+    def on_offset_x_changed(self, offset):
+        if self.renderer.live2d_manager:
+            self.renderer.live2d_manager.offset_x = offset
+            self.renderer.update()
+
+    def on_offset_y_changed(self, offset):
+        if self.renderer.live2d_manager:
+            self.renderer.live2d_manager.offset_y = offset
+            self.renderer.update()
+
+    def set_click_through(self, enabled):
+        self.click_through = enabled
+        self.update_click_through()
+        self.action_click_through.setChecked(enabled)
+
+    def set_always_on_top(self, enabled):
+        flags = self.windowFlags()
+        if enabled:
+            flags |= Qt.WindowStaysOnTopHint
+        else:
+            flags &= ~Qt.WindowStaysOnTopHint
+        self.setWindowFlags(flags)
+        self.show() # Re-show needed after flag change
+        # Re-apply click-through state because changing flags might reset window style
+        self.update_click_through()
 
     def update_click_through(self):
         if sys.platform == "win32":

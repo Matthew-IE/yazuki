@@ -1,6 +1,7 @@
 import sys
 import json
 import os
+import socket
 from PySide6.QtWidgets import QApplication, QMessageBox # type: ignore
 from PySide6.QtGui import QSurfaceFormat # type: ignore
 from app.window import OverlayWindow
@@ -18,7 +19,31 @@ def load_config():
     with open(config_path, 'r') as f:
         return json.load(f)
 
+# Global socket to hold the lock
+_lock_socket = None
+
+def is_already_running():
+    global _lock_socket
+    _lock_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # Bind to a specific port to ensure single instance
+        # Port 44242 is chosen arbitrarily for Yazuki
+        _lock_socket.bind(('127.0.0.1', 44242))
+        return False
+    except socket.error:
+        return True
+
 def main():
+    if is_already_running():
+        # Show a message box if possible, or just print
+        # Since we haven't created QApplication yet, we can create a temporary one or just print
+        print("Yazuki is already running.")
+        # We can try to show a native message box or just exit
+        # Creating a QApplication just for a message box is fine
+        app = QApplication(sys.argv)
+        QMessageBox.warning(None, "Already Running", "Yazuki is already running!")
+        return
+
     # Set up environment for high DPI
     os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
     
@@ -31,6 +56,10 @@ def main():
     QSurfaceFormat.setDefaultFormat(format)
 
     app = QApplication(sys.argv)
+    
+    # Prevent app from quitting when Settings window is closed
+    # (Because OverlayWindow is a Tool window and doesn't count towards the window count)
+    app.setQuitOnLastWindowClosed(False)
     
     config = load_config()
     

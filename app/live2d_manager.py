@@ -3,7 +3,7 @@ import time
 import math
 from OpenGL.GL import ( # type: ignore
     glPushMatrix, glLoadIdentity, glRotatef, glBegin, glColor4f, 
-    glVertex2f, glEnd, glPopMatrix, GL_QUADS
+    glVertex2f, glEnd, glPopMatrix, GL_QUADS, glScalef
 )
 
 # Try to import live2d. 
@@ -36,6 +36,11 @@ class Live2DManager:
         self.has_live2d = HAS_LIVE2D
         self.width = config['window']['width']
         self.height = config['window']['height']
+        self.ref_width = self.width
+        self.ref_height = self.height
+        self.scale = config['render'].get('scale', 1.0)
+        self.offset_x = config['render'].get('offset_x', 0.0)
+        self.offset_y = config['render'].get('offset_y', 0.0)
         
     def init_gl(self):
         if self.has_live2d:
@@ -94,6 +99,7 @@ class Live2DManager:
         self.height = h
         if self.has_live2d and self.model:
             self.model.Resize(w, h)
+            # Re-apply scale logic in draw()
 
     def update(self):
         if self.has_live2d and self.model:
@@ -106,13 +112,40 @@ class Live2DManager:
                 self.mock_angle -= 360
 
     def draw(self):
+        # Calculate compensation to keep model size constant in pixels regardless of window size
+        current_min = min(self.width, self.height) if self.width > 0 and self.height > 0 else 1
+        ref_min = min(self.ref_width, self.ref_height)
+        
+        # Compensation factor: if window grows, scale down to match reference size
+        compensation = ref_min / current_min
+        final_scale = self.scale * compensation
+
         if self.has_live2d and self.model:
+            # Use LAppModel's SetScale instead of glScalef
+            # Note: SetScale usually sets the scale relative to the model's base scale.
+            # We might need to be careful if it accumulates, but usually it's a setter.
+            # However, LAppModel might reset this in Update() or Resize()?
+            # Let's try setting it every frame or just rely on it.
+            # But wait, if we use SetScale, we might not need glScalef.
+            
+            # Actually, let's try to use glScalef again but ensure we are in the right matrix mode?
+            # If model.Draw() resets matrix, glScalef is useless.
+            # But LAppModel has SetScale! Let's use that.
+            
+            # We need to know what the "base" scale is. 
+            # Assuming SetScale(1.0) is "fit to window".
+            self.model.SetScale(final_scale)
+            self.model.SetOffset(self.offset_x, self.offset_y)
             self.model.Draw()
         else:
+            glPushMatrix()
+            glScalef(final_scale, final_scale, 1.0)
             self.draw_mock()
+            glPopMatrix()
 
     def draw_mock(self):
         # Simple rotating quad using legacy OpenGL for simplicity in prototype
+        # Note: Outer glPushMatrix handled in draw()
         glPushMatrix()
         glLoadIdentity()
         

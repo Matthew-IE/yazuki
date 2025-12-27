@@ -1,5 +1,7 @@
+import os
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QGroupBox) # type: ignore
 from PySide6.QtCore import Qt, Signal # type: ignore
+from PySide6.QtGui import QIcon # type: ignore
 
 class SettingsWindow(QWidget):
     scale_changed = Signal(float)
@@ -15,6 +17,12 @@ class SettingsWindow(QWidget):
         super().__init__()
         self.config = config
         self.setWindowTitle("Yazuki Settings")
+        
+        # Set Window Icon
+        icon_path = os.path.join(self.config['model_folder'], 'yazuki.png')
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+            
         self.resize(300, 250)
         
         layout = QVBoxLayout(self)

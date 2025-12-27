@@ -1,0 +1,19 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "yazuki.moc3",
+		"Textures": [
+			"yazukitextures/texture_00.png",
+			"yazukitextures/texture_01.png"
+		],
+		"Physics": "yazuki.physics3.json",
+		"DisplayInfo": "yazuki.cdi3.json"
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": []
+		}
+	]
+}

@@ -2,6 +2,8 @@
 
 ![Yazuki Screenshot](resources/yazukiscreen.png)
 
+<video src="resources/yazukivid.mp4" controls title="Yazuki Demo" width="100%"></video>
+
 A Python-based desktop companion that renders a Live2D Cubism model in a transparent, always-on-top window. It allows you to have a virtual character on your screen that you can interact with or click through while working.
 
 ## Features

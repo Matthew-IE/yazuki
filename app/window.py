@@ -56,6 +56,8 @@ class OverlayWindow(QMainWindow):
         self.settings_window.offset_y_changed.connect(self.on_offset_y_changed)
         self.settings_window.click_through_toggled.connect(self.set_click_through)
         self.settings_window.always_on_top_toggled.connect(self.set_always_on_top)
+        self.settings_window.look_at_mouse_toggled.connect(self.set_look_at_mouse)
+        self.settings_window.sensitivity_changed.connect(self.set_sensitivity)
         self.settings_window.reload_requested.connect(self.reload_model)
 
         # System Tray Icon
@@ -153,6 +155,16 @@ class OverlayWindow(QMainWindow):
         self.show() # Re-show needed after flag change
         # Re-apply click-through state because changing flags might reset window style
         self.update_click_through()
+
+    def set_look_at_mouse(self, enabled):
+        if self.renderer.live2d_manager:
+            self.renderer.live2d_manager.look_at_mouse = enabled
+            # Force update to reset look direction if disabled
+            self.renderer.update()
+
+    def set_sensitivity(self, value):
+        if self.renderer.live2d_manager:
+            self.renderer.live2d_manager.sensitivity = value
 
     def update_click_through(self):
         if sys.platform == "win32":

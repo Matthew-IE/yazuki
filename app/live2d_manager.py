@@ -41,6 +41,8 @@ class Live2DManager:
         self.scale = config['render'].get('scale', 1.0)
         self.offset_x = config['render'].get('offset_x', 0.0)
         self.offset_y = config['render'].get('offset_y', 0.0)
+        self.look_at_mouse = config['render'].get('look_at_mouse', True)
+        self.sensitivity = config['render'].get('sensitivity', 0.35)
         
     def init_gl(self):
         if self.has_live2d:
@@ -101,10 +103,29 @@ class Live2DManager:
             self.model.Resize(w, h)
             # Re-apply scale logic in draw()
 
-    def update(self):
+    def update(self, mouse_x=0.0, mouse_y=0.0):
         if self.has_live2d and self.model:
             # Update model state (time, physics, etc)
-            # Some bindings handle time internally, others need a delta
+            
+            if self.look_at_mouse:
+                # Calculate center
+                cx = self.width / 2
+                cy = self.height / 2
+                
+                # Calculate delta from center
+                dx = mouse_x - cx
+                dy = mouse_y - cy
+                
+                # Apply sensitivity
+                target_x = cx + (dx * self.sensitivity)
+                target_y = cy + (dy * self.sensitivity)
+                
+                # Use Drag to simulate looking
+                self.model.Drag(target_x, target_y)
+            else:
+                # Look at center (straight ahead)
+                self.model.Drag(self.width / 2, self.height / 2)
+
             self.model.Update()
         else:
             self.mock_angle += 2.0

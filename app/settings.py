@@ -7,6 +7,8 @@ class SettingsWindow(QWidget):
     offset_y_changed = Signal(float)
     click_through_toggled = Signal(bool)
     always_on_top_toggled = Signal(bool)
+    look_at_mouse_toggled = Signal(bool)
+    sensitivity_changed = Signal(float)
     reload_requested = Signal()
 
     def __init__(self, config):
@@ -83,6 +85,26 @@ class SettingsWindow(QWidget):
         self.chk_always_on_top.setChecked(config['window'].get('always_on_top', True))
         self.chk_always_on_top.toggled.connect(self.always_on_top_toggled.emit)
         window_layout.addWidget(self.chk_always_on_top)
+
+        # Look at Mouse
+        self.chk_look_at_mouse = QCheckBox("Look at Mouse")
+        self.chk_look_at_mouse.setChecked(config['render'].get('look_at_mouse', True))
+        self.chk_look_at_mouse.toggled.connect(self.look_at_mouse_toggled.emit)
+        window_layout.addWidget(self.chk_look_at_mouse)
+        
+        # Sensitivity Slider
+        sensitivity_layout = QHBoxLayout()
+        sensitivity_layout.addWidget(QLabel("Look Sensitivity:"))
+        self.sensitivity_slider = QSlider(Qt.Horizontal)
+        self.sensitivity_slider.setMinimum(1)   # 0.01x
+        self.sensitivity_slider.setMaximum(200) # 2.00x
+        initial_sensitivity = int(config['render'].get('sensitivity', 0.35) * 100)
+        self.sensitivity_slider.setValue(initial_sensitivity)
+        self.sensitivity_slider.valueChanged.connect(self.on_sensitivity_change)
+        self.sensitivity_label = QLabel(f"{initial_sensitivity/100:.2f}")
+        sensitivity_layout.addWidget(self.sensitivity_slider)
+        sensitivity_layout.addWidget(self.sensitivity_label)
+        window_layout.addLayout(sensitivity_layout)
         
         layout.addWidget(window_group)
         
@@ -111,6 +133,11 @@ class SettingsWindow(QWidget):
         offset = value / 100.0
         self.offset_y_label.setText(f"{offset:.2f}")
         self.offset_y_changed.emit(offset)
+
+    def on_sensitivity_change(self, value):
+        sensitivity = value / 100.0
+        self.sensitivity_label.setText(f"{sensitivity:.2f}")
+        self.sensitivity_changed.emit(sensitivity)
 
     def update_state(self, click_through):
         # Update UI if state changes externally (e.g. F8)

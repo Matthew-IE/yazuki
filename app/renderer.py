@@ -1,5 +1,6 @@
 from PySide6.QtOpenGLWidgets import QOpenGLWidget # type: ignore
 from PySide6.QtCore import QTimer # type: ignore
+from PySide6.QtGui import QCursor # type: ignore
 from OpenGL.GL import * # type: ignore
 from app.live2d_manager import Live2DManager
 
@@ -34,7 +35,19 @@ class RendererWidget(QOpenGLWidget):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) # type: ignore
         
         if self.live2d_manager:
-            self.live2d_manager.update()
+            # Pass global mouse position relative to this widget
+            # We map global cursor pos to widget coordinates
+            # Use QCursor.pos() to get the global mouse position reliably
+            cursor_pos = self.mapFromGlobal(QCursor.pos())
+            
+            # Pass pixel coordinates directly to Live2D manager
+            # The Drag function likely expects screen coordinates (pixels), not normalized values.
+            # If we pass normalized (-1 to 1), it interprets them as pixels near (0,0) (Top-Left).
+            mx = float(cursor_pos.x())
+            my = float(cursor_pos.y())
+            
+            self.live2d_manager.update(mx, my)
+            
             self.live2d_manager.draw()
 
     def reload_model(self):

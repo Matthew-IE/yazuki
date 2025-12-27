@@ -17,7 +17,7 @@ try:
     print("Live2D v3 library found.")
 except ImportError:
     try:
-        import live2d
+        import live2d # type: ignore
         # Check for expected functions to ensure it's the right library
         if hasattr(live2d, 'init') and hasattr(live2d, 'LAppModel'):
             HAS_LIVE2D = True

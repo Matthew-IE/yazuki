@@ -8,7 +8,8 @@ A Python-based desktop companion that renders a Live2D Cubism model in a transpa
 
 - **Transparent Window**: Borderless and transparent background (only the character is visible).
 - **Always-on-Top**: Stays above other windows.
-- **Click-Through Toggle**: Press `F8` to toggle between interacting with the model (drag to move) and clicking through it (to work behind it).
+- **System Tray Control**: A system tray icon allows you to control the app even when the window is in click-through mode.
+- **Click-Through Toggle**: Press `F8` or use the tray menu to toggle between interacting with the model (drag to move) and clicking through it.
 - **Live2D Rendering**: Supports Live2D Cubism models via `live2d-py`.
 - **Mock Mode**: If the Live2D library is missing, it gracefully falls back to a "Mock Mode" (rotating green square) for testing window behavior.
 
@@ -59,6 +60,7 @@ python -m app.main
 
 ## Controls
 
+- **System Tray Icon**: Right-click the icon in your taskbar to access the menu (Toggle Click-Through, Reload, Quit). This is useful when you can't click the window itself.
 - **Left Click + Drag**: Move the character (only works when Click-Through is **OFF**).
 - **F8**: Toggle Click-Through Mode.
   - **OFF**: You can click and drag the character.

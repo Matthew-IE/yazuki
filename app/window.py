@@ -1,8 +1,9 @@
 import sys
 import ctypes
+import os
 from PySide6.QtCore import Qt, QPoint # type: ignore
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget # type: ignore
-from PySide6.QtGui import QKeyEvent # type: ignore
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QSystemTrayIcon, QMenu # type: ignore
+from PySide6.QtGui import QKeyEvent, QIcon, QAction # type: ignore
 
 # Windows API constants
 GWL_EXSTYLE = -20
@@ -46,6 +47,62 @@ class OverlayWindow(QMainWindow):
         # Apply initial click-through state
         self.update_click_through()
 
+        # System Tray Icon
+        self.init_tray_icon()
+
+    def init_tray_icon(self):
+        self.tray_icon = QSystemTrayIcon(self)
+        
+        # Try to load an icon
+        icon_path = os.path.join(self.config['model_folder'], 'yazuki.png')
+        if os.path.exists(icon_path):
+            self.tray_icon.setIcon(QIcon(icon_path))
+        else:
+            # Fallback or standard icon
+            self.tray_icon.setIcon(self.style().standardIcon(self.style().StandardPixmap.SP_ComputerIcon))
+
+        # Context Menu
+        tray_menu = QMenu()
+        
+        self.action_click_through = QAction("Click-Through", self)
+        self.action_click_through.setCheckable(True)
+        self.action_click_through.setChecked(self.click_through)
+        self.action_click_through.triggered.connect(self.toggle_click_through)
+        tray_menu.addAction(self.action_click_through)
+        
+        action_reload = QAction("Reload Model", self)
+        action_reload.triggered.connect(self.reload_model)
+        tray_menu.addAction(action_reload)
+        
+        tray_menu.addSeparator()
+        
+        action_quit = QAction("Quit", self)
+        action_quit.triggered.connect(QApplication.quit)
+        tray_menu.addAction(action_quit)
+        
+        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.show()
+
+    def toggle_click_through(self):
+        # If called from menu, the state might already be toggled, but we manage it manually
+        # to keep sync between F8 and Menu.
+        # Actually, if called from menu triggered, the checked state updates automatically?
+        # Let's rely on self.click_through as source of truth.
+        
+        # If sender is the action, update self.click_through from the action
+        if self.sender() == self.action_click_through:
+            self.click_through = self.action_click_through.isChecked()
+        else:
+            # If called from F8, toggle boolean and update action
+            self.click_through = not self.click_through
+            self.action_click_through.setChecked(self.click_through)
+            
+        self.update_click_through()
+
+    def reload_model(self):
+        if hasattr(self.renderer, 'reload_model'):
+            self.renderer.reload_model()
+
     def update_click_through(self):
         if sys.platform == "win32":
             hwnd = self.winId()
@@ -65,11 +122,9 @@ class OverlayWindow(QMainWindow):
 
     def keyPressEvent(self, event: QKeyEvent):
         if event.key() == Qt.Key_F8:
-            self.click_through = not self.click_through
-            self.update_click_through()
+            self.toggle_click_through()
         elif event.key() == Qt.Key_F9:
-            if hasattr(self.renderer, 'reload_model'):
-                self.renderer.reload_model()
+            self.reload_model()
         elif event.key() == Qt.Key_Escape:
             QApplication.quit()
         else:

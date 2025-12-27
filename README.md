@@ -1,6 +1,9 @@
 # Yazuki - Live2D Desktop Companion
 
-![Yazuki Screenshot](resources/yazukiscreen.png)
+<p float="left">
+  <img src="resources/yazukiscreen.png" width="49%" />
+  <img src="resources/yazukiscreen2.png" width="49%" /> 
+</p>
 
 <video src="resources/yazukivid.mp4" controls title="Yazuki Demo" width="100%"></video>
 

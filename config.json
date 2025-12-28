@@ -15,5 +15,19 @@
         "offset_y": 0.0,
         "sensitivity": 0.35,
         "look_at_mouse": true
+    },
+    "chat": {
+        "font_size": 16,
+        "text_color": "#FFFFFF",
+        "bg_color": "#000000",
+        "bg_opacity": 180,
+        "offset_x": 0,
+        "offset_y": 0
+    },
+    "ai": {
+        "api_key": "",
+        "input_device": -1,
+        "input_key_vk": 86,
+        "input_key_name": "V"
     }
 }

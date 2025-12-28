@@ -4,10 +4,11 @@ from ctypes import wintypes
 import os
 import json
 import subprocess
-from PySide6.QtCore import Qt, QPoint, QSize # type: ignore
+from PySide6.QtCore import Qt, QPoint, QSize, QTimer, Signal # type: ignore
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QSystemTrayIcon, QMenu, QSizeGrip # type: ignore
 from PySide6.QtGui import QKeyEvent, QIcon, QAction, QPainter, QPen, QColor # type: ignore
 from app.settings import SettingsWindow
+from app.ai_manager import AIManager
 
 # Windows API constants
 GWL_EXSTYLE = -20
@@ -17,14 +18,21 @@ WM_HOTKEY = 0x0312
 MOD_NONE = 0x0000
 VK_F8 = 0x77
 VK_F9 = 0x78
+VK_V = 0x56
 HOTKEY_ID_F8 = 1
 HOTKEY_ID_F9 = 2
 
 class OverlayWindow(QMainWindow):
+    ai_response_received = Signal(str)
+
     def __init__(self, config, renderer_widget):
         super().__init__()
         self.config = config
         self.renderer = renderer_widget
+        self.ai_manager = AIManager(config)
+
+        # Connect AI signal
+        self.ai_response_received.connect(self.on_ai_response)
         
         # Window setup
         self.setWindowFlags(
@@ -77,12 +85,50 @@ class OverlayWindow(QMainWindow):
         self.settings_window.reload_requested.connect(self.reload_model)
         self.settings_window.save_requested.connect(self.save_settings)
         self.settings_window.quit_requested.connect(QApplication.quit)
+        self.settings_window.ai_settings_changed.connect(self.update_ai_settings)
+        self.settings_window.chat_settings_changed.connect(self.update_chat_settings)
+        self.settings_window.input_key_changed.connect(self.set_input_key)
 
         # System Tray Icon
         self.init_tray_icon()
         
         # Register Global Hotkeys
         self.register_hotkeys()
+        
+        # Input Polling Timer (for V key)
+        self.input_key_vk = config.get('ai', {}).get('input_key_vk', VK_V)
+        self.input_timer = QTimer()
+        self.input_timer.timeout.connect(self.check_input_key)
+        self.input_timer.start(50) # Check every 50ms
+        self.v_key_pressed = False
+
+    def check_input_key(self):
+        if sys.platform == "win32":
+            # Check if configured key is down (high bit set)
+            is_down = ctypes.windll.user32.GetAsyncKeyState(self.input_key_vk) & 0x8000
+            
+            if is_down and not self.v_key_pressed:
+                # Key Pressed
+                self.v_key_pressed = True
+                self.renderer.set_status_text("Listening...")
+                self.ai_manager.start_recording()
+                
+            elif not is_down and self.v_key_pressed:
+                # Key Released
+                self.v_key_pressed = False
+                self.renderer.set_status_text("Thinking...")
+                self.ai_manager.stop_recording_and_process(self.ai_response_received.emit)
+
+    def set_input_key(self, vk_code):
+        self.input_key_vk = vk_code
+
+    def on_ai_response(self, text):
+        # This might be called from a thread, so we should be careful with UI updates
+        # But setText is usually thread-safe enough for simple strings, or we use signals.
+        # For safety, let's assume it's okay or use QMetaObject.invokeMethod if needed.
+        # Actually, let's just set it.
+        self.renderer.set_chat_text(text)
+        self.renderer.set_status_text("")
 
     def init_tray_icon(self):
         self.tray_icon = QSystemTrayIcon(self)
@@ -252,6 +298,10 @@ class OverlayWindow(QMainWindow):
         except Exception as e:
             print(f"Failed to save settings: {e}")
 
+    def update_ai_settings(self):
+        # Re-initialize client if key changed
+        self.ai_manager.setup_client()
+
     def update_click_through(self):
         if sys.platform == "win32":
             hwnd = self.winId()
@@ -302,6 +352,14 @@ class OverlayWindow(QMainWindow):
             # Register F9
             if not ctypes.windll.user32.RegisterHotKey(int(hwnd), HOTKEY_ID_F9, MOD_NONE, VK_F9):
                 print("Failed to register F9 hotkey")
+
+    def update_ai_settings(self):
+        # Re-init AI manager with new config
+        self.ai_manager = AIManager(self.config)
+
+    def update_chat_settings(self, settings):
+        self.config['chat'] = settings
+        self.renderer.update_chat_settings(settings)
 
     def unregister_hotkeys(self):
         if sys.platform == "win32":

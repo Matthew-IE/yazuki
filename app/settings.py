@@ -1,7 +1,8 @@
 import os
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QGroupBox, QSpinBox, QTabWidget, QFrame) # type: ignore
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QGroupBox, QSpinBox, QTabWidget, QFrame, QLineEdit, QComboBox, QColorDialog) # type: ignore
 from PySide6.QtCore import Qt, Signal # type: ignore
-from PySide6.QtGui import QIcon # type: ignore
+from PySide6.QtGui import QIcon, QColor, QKeySequence, QKeyEvent # type: ignore
+from app.ai_manager import AIManager
 
 class SettingsWindow(QWidget):
     scale_changed = Signal(float)
@@ -16,10 +17,14 @@ class SettingsWindow(QWidget):
     reload_requested = Signal()
     save_requested = Signal()
     quit_requested = Signal()
+    ai_settings_changed = Signal()
+    chat_settings_changed = Signal(dict)
+    input_key_changed = Signal(int)
 
     def __init__(self, config):
         super().__init__()
         self.config = config
+        self.waiting_for_key = False
         self.setWindowTitle("Yazuki Settings")
         
         # Set Window Icon
@@ -31,7 +36,7 @@ class SettingsWindow(QWidget):
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
             
-        self.resize(400, 350)
+        self.resize(500, 600)
         
         # Apply Dark Theme
         self.setStyleSheet("""
@@ -111,6 +116,22 @@ class SettingsWindow(QWidget):
                 border: 1px solid #3d3d3d;
                 padding: 4px;
                 border-radius: 3px;
+            }
+            QComboBox {
+                background-color: #1e1e1e;
+                border: 1px solid #3d3d3d;
+                padding: 4px;
+                border-radius: 3px;
+                font-size: 14px;
+            }
+            QComboBox::drop-down {
+                border: 0px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #1e1e1e;
+                color: #ffffff;
+                selection-background-color: #007acc;
+                font-size: 14px;
             }
         """)
         
@@ -260,6 +281,77 @@ class SettingsWindow(QWidget):
         layout_window.addStretch()
         self.tabs.addTab(tab_window, "Window")
 
+        # --- Tab 4: Input ---
+        tab_input = QWidget()
+        layout_input = QVBoxLayout(tab_input)
+        
+        group_input = QGroupBox("Audio Input")
+        layout_group_input = QVBoxLayout(group_input)
+        
+        layout_group_input.addWidget(QLabel("Microphone Device:"))
+        self.combo_input_device = QComboBox()
+        self.combo_input_device.addItem("Default", -1)
+        
+        # Populate devices
+        self.ai_manager = AIManager(config) # Temp instance to list devices
+        devices = self.ai_manager.get_input_devices()
+        for idx, name in devices:
+            self.combo_input_device.addItem(name, idx)
+            
+        # Set current selection
+        current_device = config.get('ai', {}).get('input_device', -1)
+        index = self.combo_input_device.findData(current_device)
+        if index >= 0:
+            self.combo_input_device.setCurrentIndex(index)
+            
+        self.combo_input_device.currentIndexChanged.connect(self.on_input_device_changed)
+        layout_group_input.addWidget(self.combo_input_device)
+        
+        layout_input.addWidget(group_input)
+
+        group_keybind = QGroupBox("Voice Input Keybind")
+        layout_keybind = QVBoxLayout(group_keybind)
+        
+        key_layout = QHBoxLayout()
+        key_layout.addWidget(QLabel("Current Key:"))
+        
+        self.btn_keybind = QPushButton()
+        current_key_name = config.get('ai', {}).get('input_key_name', 'V')
+        self.btn_keybind.setText(current_key_name)
+        self.btn_keybind.clicked.connect(self.start_key_recording)
+        key_layout.addWidget(self.btn_keybind)
+        
+        layout_keybind.addLayout(key_layout)
+        layout_keybind.addWidget(QLabel("Click the button and press a key to change."))
+        
+        layout_input.addWidget(group_keybind)
+        
+        layout_input.addStretch()
+        self.tabs.addTab(tab_input, "Input")
+
+        # --- Tab 5: AI ---
+        tab_ai = QWidget()
+        layout_ai = QVBoxLayout(tab_ai)
+        
+        group_ai = QGroupBox("OpenAI Configuration")
+        layout_group_ai = QVBoxLayout(group_ai)
+        
+        layout_group_ai.addWidget(QLabel("API Key:"))
+        self.txt_api_key = QLineEdit()
+        self.txt_api_key.setEchoMode(QLineEdit.Password)
+        self.txt_api_key.setText(config.get('ai', {}).get('api_key', ''))
+        self.txt_api_key.textChanged.connect(self.on_api_key_changed)
+        layout_group_ai.addWidget(self.txt_api_key)
+        
+        layout_ai.addWidget(group_ai)
+        layout_ai.addStretch()
+        self.tabs.addTab(tab_ai, "AI")
+
+        # --- Tab 6: Chat ---
+        tab_chat = QWidget()
+        self.init_chat_tab(tab_chat)
+        self.tabs.addTab(tab_chat, "Chat")
+
         # --- Bottom Actions ---
         action_layout = QHBoxLayout()
         
@@ -301,6 +393,15 @@ class SettingsWindow(QWidget):
     def on_size_changed(self):
         self.window_size_changed.emit(self.spin_width.value(), self.spin_height.value())
 
+    def on_input_device_changed(self, index):
+        device_id = self.combo_input_device.currentData()
+        self.config.setdefault('ai', {})['input_device'] = device_id
+        self.ai_settings_changed.emit()
+
+    def on_api_key_changed(self, text):
+        self.config.setdefault('ai', {})['api_key'] = text
+        self.ai_settings_changed.emit()
+
     def update_size_display(self, w, h):
         self.spin_width.blockSignals(True)
         self.spin_height.blockSignals(True)
@@ -314,3 +415,145 @@ class SettingsWindow(QWidget):
         self.chk_click_through.blockSignals(True)
         self.chk_click_through.setChecked(click_through)
         self.chk_click_through.blockSignals(False)
+
+    def init_chat_tab(self, tab):
+        layout = QVBoxLayout()
+        tab.setLayout(layout)
+        
+        chat_config = self.config.get('chat', {})
+        
+        # Font Size
+        font_group = QGroupBox("Font")
+        font_layout = QVBoxLayout()
+        
+        size_layout = QHBoxLayout()
+        size_layout.addWidget(QLabel("Size:"))
+        self.font_size_spin = QSpinBox()
+        self.font_size_spin.setRange(8, 72)
+        self.font_size_spin.setValue(chat_config.get('font_size', 16))
+        self.font_size_spin.valueChanged.connect(self.emit_chat_settings)
+        size_layout.addWidget(self.font_size_spin)
+        font_layout.addLayout(size_layout)
+        
+        # Text Color
+        color_layout = QHBoxLayout()
+        color_layout.addWidget(QLabel("Color:"))
+        self.text_color_btn = QPushButton()
+        self.text_color = chat_config.get('text_color', '#FFFFFF')
+        self.text_color_btn.setStyleSheet(f"background-color: {self.text_color}; border: 1px solid #555;")
+        self.text_color_btn.clicked.connect(self.pick_text_color)
+        color_layout.addWidget(self.text_color_btn)
+        font_layout.addLayout(color_layout)
+        
+        font_group.setLayout(font_layout)
+        layout.addWidget(font_group)
+        
+        # Background
+        bg_group = QGroupBox("Background")
+        bg_layout = QVBoxLayout()
+        
+        bg_color_layout = QHBoxLayout()
+        bg_color_layout.addWidget(QLabel("Color:"))
+        self.bg_color_btn = QPushButton()
+        self.bg_color = chat_config.get('bg_color', '#000000')
+        self.bg_color_btn.setStyleSheet(f"background-color: {self.bg_color}; border: 1px solid #555;")
+        self.bg_color_btn.clicked.connect(self.pick_bg_color)
+        bg_color_layout.addWidget(self.bg_color_btn)
+        bg_layout.addLayout(bg_color_layout)
+        
+        opacity_layout = QHBoxLayout()
+        opacity_layout.addWidget(QLabel("Opacity:"))
+        self.bg_opacity_slider = QSlider(Qt.Horizontal)
+        self.bg_opacity_slider.setRange(0, 255)
+        self.bg_opacity_slider.setValue(chat_config.get('bg_opacity', 180))
+        self.bg_opacity_slider.valueChanged.connect(self.emit_chat_settings)
+        opacity_layout.addWidget(self.bg_opacity_slider)
+        bg_layout.addLayout(opacity_layout)
+        
+        bg_group.setLayout(bg_layout)
+        layout.addWidget(bg_group)
+        
+        # Position
+        pos_group = QGroupBox("Position Offset")
+        pos_layout = QVBoxLayout()
+        
+        x_layout = QHBoxLayout()
+        x_layout.addWidget(QLabel("X:"))
+        self.offset_x_spin = QSpinBox()
+        self.offset_x_spin.setRange(-500, 500)
+        self.offset_x_spin.setValue(chat_config.get('offset_x', 0))
+        self.offset_x_spin.valueChanged.connect(self.emit_chat_settings)
+        x_layout.addWidget(self.offset_x_spin)
+        pos_layout.addLayout(x_layout)
+        
+        y_layout = QHBoxLayout()
+        y_layout.addWidget(QLabel("Y:"))
+        self.offset_y_spin = QSpinBox()
+        self.offset_y_spin.setRange(-500, 500)
+        self.offset_y_spin.setValue(chat_config.get('offset_y', 0))
+        self.offset_y_spin.valueChanged.connect(self.emit_chat_settings)
+        y_layout.addWidget(self.offset_y_spin)
+        pos_layout.addLayout(y_layout)
+        
+        pos_group.setLayout(pos_layout)
+        layout.addWidget(pos_group)
+        
+        layout.addStretch()
+
+    def pick_text_color(self):
+        color = QColorDialog.getColor(QColor(self.text_color), self, "Select Text Color")
+        if color.isValid():
+            self.text_color = color.name()
+            self.text_color_btn.setStyleSheet(f"background-color: {self.text_color}; border: 1px solid #555;")
+            self.emit_chat_settings()
+
+    def start_key_recording(self):
+        self.waiting_for_key = True
+        self.btn_keybind.setText("Press any key...")
+        self.btn_keybind.setStyleSheet("background-color: #ff9800; color: black;")
+        self.grabKeyboard() # Grab keyboard input
+
+    def keyPressEvent(self, event: QKeyEvent):
+        if self.waiting_for_key:
+            key = event.key()
+            native_key = event.nativeVirtualKey()
+            
+            # Ignore modifier keys alone
+            if key in [Qt.Key_Control, Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Meta]:
+                return
+                
+            key_name = QKeySequence(key).toString()
+            
+            # Update Config
+            ai_config = self.config.setdefault('ai', {})
+            ai_config['input_key_vk'] = native_key
+            ai_config['input_key_name'] = key_name
+            
+            # Update UI
+            self.btn_keybind.setText(key_name)
+            self.btn_keybind.setStyleSheet("") # Reset style
+            
+            self.waiting_for_key = False
+            self.releaseKeyboard()
+            
+            self.input_key_changed.emit(native_key)
+        else:
+            super().keyPressEvent(event)
+
+    def pick_bg_color(self):
+        color = QColorDialog.getColor(QColor(self.bg_color), self, "Select Background Color")
+        if color.isValid():
+            self.bg_color = color.name()
+            self.bg_color_btn.setStyleSheet(f"background-color: {self.bg_color}; border: 1px solid #555;")
+            self.emit_chat_settings()
+
+    def emit_chat_settings(self):
+        settings = {
+            'font_size': self.font_size_spin.value(),
+            'text_color': self.text_color,
+            'bg_color': self.bg_color,
+            'bg_opacity': self.bg_opacity_slider.value(),
+            'offset_x': self.offset_x_spin.value(),
+            'offset_y': self.offset_y_spin.value()
+        }
+        self.chat_settings_changed.emit(settings)

@@ -67,6 +67,7 @@ class OverlayWindow(QMainWindow):
         self.settings_window.resize_mode_toggled.connect(self.set_resize_mode)
         self.settings_window.window_size_changed.connect(self.set_window_size)
         self.settings_window.reload_requested.connect(self.reload_model)
+        self.settings_window.quit_requested.connect(QApplication.quit)
 
         # System Tray Icon
         self.init_tray_icon()
@@ -75,7 +76,11 @@ class OverlayWindow(QMainWindow):
         self.tray_icon = QSystemTrayIcon(self)
         
         # Try to load an icon
-        icon_path = os.path.join(self.config['model_folder'], 'yazuki.png')
+        # Check media folder first, then model folder
+        icon_path = os.path.join('resources', 'media', 'yazuki.png')
+        if not os.path.exists(icon_path):
+            icon_path = os.path.join(self.config['model_folder'], 'yazuki.png')
+            
         if os.path.exists(icon_path):
             self.tray_icon.setIcon(QIcon(icon_path))
         else:

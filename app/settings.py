@@ -14,6 +14,7 @@ class SettingsWindow(QWidget):
     resize_mode_toggled = Signal(bool)
     window_size_changed = Signal(int, int)
     reload_requested = Signal()
+    quit_requested = Signal()
 
     def __init__(self, config):
         super().__init__()
@@ -21,7 +22,11 @@ class SettingsWindow(QWidget):
         self.setWindowTitle("Yazuki Settings")
         
         # Set Window Icon
-        icon_path = os.path.join(self.config['model_folder'], 'yazuki.png')
+        # Check media folder first, then model folder
+        icon_path = os.path.join('resources', 'media', 'yazuki.png')
+        if not os.path.exists(icon_path):
+            icon_path = os.path.join(self.config['model_folder'], 'yazuki.png')
+
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
             
@@ -260,6 +265,11 @@ class SettingsWindow(QWidget):
         btn_reload = QPushButton("Reload Model")
         btn_reload.clicked.connect(self.reload_requested.emit)
         action_layout.addWidget(btn_reload)
+        
+        btn_quit = QPushButton("Quit Application")
+        btn_quit.setStyleSheet("background-color: #d32f2f; color: white;") # Red color for quit
+        btn_quit.clicked.connect(self.quit_requested.emit)
+        action_layout.addWidget(btn_quit)
         
         main_layout.addLayout(action_layout)
 

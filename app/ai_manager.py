@@ -15,9 +15,14 @@ class AIManager:
         self.client = None
         self.history = []
         self.system_prompt = "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting."
+        self.memory_enabled = config.get('ai', {}).get('memory_enabled', True)
         self.clear_memory()
         self.setup_client()
         
+    def set_memory_enabled(self, enabled):
+        self.memory_enabled = enabled
+        print(f"Memory enabled: {enabled}")
+
     def clear_memory(self):
         self.history = [{"role": "system", "content": self.system_prompt}]
         print("Memory cleared.")
@@ -113,18 +118,29 @@ class AIManager:
 
             print("Sending to AI...")
             
-            # Append user message to history
-            self.history.append({"role": "user", "content": user_text})
+            messages_to_send = []
+            
+            if self.memory_enabled:
+                # Append user message to history
+                self.history.append({"role": "user", "content": user_text})
+                messages_to_send = self.history
+            else:
+                # Use fresh context
+                messages_to_send = [
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": user_text}
+                ]
             
             # Chat
             response = self.client.chat.completions.create(
                 model="gpt-5-nano", 
-                messages=self.history
+                messages=messages_to_send
             )
             reply = response.choices[0].message.content
             
-            # Append AI reply to history
-            self.history.append({"role": "assistant", "content": reply})
+            if self.memory_enabled:
+                # Append AI reply to history
+                self.history.append({"role": "assistant", "content": reply})
             
             print(f"AI replied: {reply}")
             callback(reply)

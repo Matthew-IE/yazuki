@@ -21,6 +21,7 @@ class SettingsWindow(QWidget):
     chat_settings_changed = Signal(dict)
     input_key_changed = Signal(int)
     clear_memory_requested = Signal()
+    memory_enabled_toggled = Signal(bool)
 
     def __init__(self, config):
         super().__init__()
@@ -350,6 +351,11 @@ class SettingsWindow(QWidget):
         group_memory = QGroupBox("Memory")
         layout_memory = QVBoxLayout(group_memory)
         
+        self.chk_memory_enabled = QCheckBox("Enable Conversation Memory")
+        self.chk_memory_enabled.setChecked(config.get('ai', {}).get('memory_enabled', True))
+        self.chk_memory_enabled.toggled.connect(self.on_memory_toggled)
+        layout_memory.addWidget(self.chk_memory_enabled)
+        
         btn_clear_memory = QPushButton("Clear Conversation Memory")
         btn_clear_memory.clicked.connect(self.clear_memory_requested.emit)
         layout_memory.addWidget(btn_clear_memory)
@@ -551,6 +557,10 @@ class SettingsWindow(QWidget):
             self.input_key_changed.emit(native_key)
         else:
             super().keyPressEvent(event)
+
+    def on_memory_toggled(self, checked):
+        self.config.setdefault('ai', {})['memory_enabled'] = checked
+        self.memory_enabled_toggled.emit(checked)
 
     def pick_bg_color(self):
         color = QColorDialog.getColor(QColor(self.bg_color), self, "Select Background Color")

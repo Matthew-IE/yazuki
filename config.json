@@ -28,6 +28,7 @@
         "api_key": "",
         "input_device": -1,
         "input_key_vk": 86,
-        "input_key_name": "V"
+        "input_key_name": "V",
+        "memory_enabled": true
     }
 }

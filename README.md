@@ -132,9 +132,6 @@ You can customize the application by editing `config.json` or using the Settings
     }
 }
 ```
-    }
-}
-```
 
 ## Troubleshooting
 

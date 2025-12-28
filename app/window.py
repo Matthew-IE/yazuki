@@ -378,8 +378,9 @@ class OverlayWindow(QMainWindow):
                 print("Failed to register F9 hotkey")
 
     def update_ai_settings(self):
-        # Re-init AI manager with new config
-        self.ai_manager = AIManager(self.config)
+        # Re-setup AI manager clients with new config
+        # We don't want to create a new instance because we'd lose history
+        self.ai_manager.setup_client()
 
     def update_chat_settings(self, settings):
         self.config['chat'] = settings

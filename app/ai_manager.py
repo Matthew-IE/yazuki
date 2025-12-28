@@ -7,6 +7,7 @@ import numpy as np # type: ignore
 import sounddevice as sd # type: ignore
 from scipy.io.wavfile import write, read # type: ignore
 from openai import OpenAI # type: ignore
+from app.ai import get_ai_provider
 
 class AIManager:
     def __init__(self, config):
@@ -15,10 +16,12 @@ class AIManager:
         self.audio_data = []
         self.samplerate = 44100
         self.client = None
+        self.provider = None
         self.history = []
         self.system_prompt = "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting."
         self.memory_enabled = config.get('ai', {}).get('memory_enabled', True)
         self.mouth_sensitivity = config.get('render', {}).get('mouth_sensitivity', 5.0)
+        self.local_whisper_model = None
         self.clear_memory()
         self.setup_client()
         
@@ -34,11 +37,15 @@ class AIManager:
         print("Memory cleared.")
 
     def setup_client(self):
+        # Setup OpenAI Client for STT (if key exists)
         api_key = self.config.get('ai', {}).get('api_key', '')
         if api_key:
             self.client = OpenAI(api_key=api_key)
         else:
             self.client = None
+            
+        # Setup Chat Provider
+        self.provider = get_ai_provider(self.config)
 
     def get_input_devices(self):
         try:
@@ -96,10 +103,6 @@ class AIManager:
         process_thread.start()
 
     def _process_audio(self, callback, lip_sync_callback=None):
-        if not self.client:
-            callback("Error: No API Key configured")
-            return
-
         try:
             # Save to temp file
             recording = np.concatenate(self.audio_data, axis=0)
@@ -109,13 +112,34 @@ class AIManager:
             write(filename, self.samplerate, recording)
             
             print("Transcribing...")
+            user_text = ""
+            
             # Transcribe
-            with open(filename, "rb") as audio_file:
-                transcript = self.client.audio.transcriptions.create(
-                    model="whisper-1", 
-                    file=audio_file
-                )
-            user_text = transcript.text
+            if self.client:
+                # Use OpenAI Whisper if available
+                with open(filename, "rb") as audio_file:
+                    transcript = self.client.audio.transcriptions.create(
+                        model="whisper-1", 
+                        file=audio_file
+                    )
+                user_text = transcript.text
+            else:
+                # Fallback to local Whisper (openai-whisper)
+                try:
+                    import whisper # type: ignore
+                    if self.local_whisper_model is None:
+                        print("Loading local Whisper model (small)...")
+                        self.local_whisper_model = whisper.load_model("small")
+                    
+                    result = self.local_whisper_model.transcribe(filename)
+                    user_text = result["text"]
+                except ImportError:
+                    callback("Error: OpenAI Key missing and 'openai-whisper' not installed. Run: pip install openai-whisper")
+                    return
+                except Exception as e:
+                    callback(f"STT Error: {e}")
+                    return
+
             print(f"User said: {user_text}")
             
             if not user_text.strip():
@@ -138,11 +162,7 @@ class AIManager:
                 ]
             
             # Chat
-            response = self.client.chat.completions.create(
-                model="gpt-5-nano", 
-                messages=messages_to_send
-            )
-            reply = response.choices[0].message.content
+            reply = self.provider.chat(messages_to_send)
             
             if self.memory_enabled:
                 # Append AI reply to history
@@ -154,8 +174,8 @@ class AIManager:
             # TTS (Typecast)
             if self.config.get('typecast', {}).get('enabled', False):
                 try:
-                    from typecast.client import Typecast
-                    from typecast.models import TTSRequest
+                    from typecast.client import Typecast # type: ignore
+                    from typecast.models import TTSRequest # type: ignore
                     
                     tts_api_key = self.config.get('typecast', {}).get('api_key', '')
                     voice_id = self.config.get('typecast', {}).get('voice_id', '')

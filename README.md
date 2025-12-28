@@ -13,8 +13,11 @@ A Python-based desktop companion that renders a Live2D Cubism model in a transpa
 
 - **Transparent Window**: Borderless and transparent background (only the character is visible).
 - **Always-on-Top**: Stays above other windows.
-- **AI Companion**: Integrated with OpenAI (Whisper & GPT) for voice interaction. Hold the hotkey to speak, and the character responds with a text bubble.
-- **Text-to-Speech (TTS)**: Integrated with **Typecast.ai** to give the character a voice.
+- **AI Companion**: Integrated with **OpenAI** (GPT) and **Ollama** (Local LLMs) for voice interaction. Choose your preferred provider in Settings.
+- **Voice Interaction**:
+  - **Speech-to-Text (STT)**: Uses OpenAI Whisper (Cloud) or `openai-whisper` (Local) for accurate voice recognition.
+  - **Text-to-Speech (TTS)**: Integrated with **Typecast.ai** to give the character a voice.
+  - **Lip Sync**: The character's mouth moves in sync with the TTS audio (adjustable sensitivity).
 - **Interactive Eye Tracking**: The model follows your mouse cursor with adjustable sensitivity.
 - **Advanced Settings UI**: A modern, dark-themed settings window to control appearance, behavior, window properties, and AI configuration in real-time.
 - **Customizable Chat**: Fully personalize the chat bubble's appearance (Font, Color, Background, Position) via the Settings menu.
@@ -27,8 +30,6 @@ A Python-based desktop companion that renders a Live2D Cubism model in a transpa
 
 ## Roadmap
 
-- **Local AI Integration**: Future updates aim to support running LLMs locally (e.g., Llama, Mistral) to remove the dependency on external APIs and ensure privacy/offline capability.
-- **Lip Sync**: Syncing model mouth movements with AI text-to-speech output.
 - **Expression Control**: AI-driven emotional expressions based on the conversation context.
 
 ## Requirements
@@ -36,6 +37,8 @@ A Python-based desktop companion that renders a Live2D Cubism model in a transpa
 - Windows 10/11
 - Python 3.8+
 - A Live2D Cubism Model (Exported for runtime, version 3.0+)
+- **FFmpeg**: Required for local Whisper STT. [Download FFmpeg](https://ffmpeg.org/download.html) and add it to your system PATH.
+- **Ollama** (Optional): For local AI inference. [Download Ollama](https://ollama.com/).
 
 ## Installation
 
@@ -57,7 +60,19 @@ A Python-based desktop companion that renders a Live2D Cubism model in a transpa
     ```
     *Note: If `pip install live2d-py` fails or isn't available for your platform, check [live2d-py on GitHub](https://github.com/EasyLive2D/live2d-py) for build instructions or pre-built wheels.*
 
-4.  **Add Your Model**:
+4.  **Setup AI Providers (Optional)**:
+    - **Ollama (Local)**:
+      1. Install Ollama from [ollama.com](https://ollama.com/).
+      2. Pull a model (e.g., `ollama pull llama3`).
+      3. In Yazuki Settings > AI, select "Ollama" and enter the model name.
+    - **OpenAI (Cloud)**:
+      1. Get an API Key from [platform.openai.com](https://platform.openai.com/).
+      2. In Yazuki Settings > AI, select "OpenAI" and enter your key.
+    - **Local Whisper (STT)**:
+      1. Ensure `ffmpeg` is installed and in your PATH.
+      2. The app will automatically download the `small` model on first use.
+
+5.  **Add Your Model**:
     - Place your exported Live2D model folder inside `resources/model/`.
     - Update `config.json` to point to your specific model folder.
     - Example `config.json`:

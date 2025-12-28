@@ -366,6 +366,25 @@ class SettingsWindow(QWidget):
         self.chk_ai_enabled.toggled.connect(self.on_ai_enabled_toggled)
         layout_ai.addWidget(self.chk_ai_enabled)
 
+        # Provider Selection
+        group_provider = QGroupBox("AI Provider")
+        layout_provider = QVBoxLayout(group_provider)
+        
+        layout_provider.addWidget(QLabel("Select Provider:"))
+        self.combo_provider = QComboBox()
+        self.combo_provider.addItem("OpenAI", "openai")
+        self.combo_provider.addItem("Ollama", "ollama")
+        
+        current_provider = config.get('ai', {}).get('provider', 'openai')
+        index = self.combo_provider.findData(current_provider)
+        if index >= 0:
+            self.combo_provider.setCurrentIndex(index)
+        self.combo_provider.currentIndexChanged.connect(self.on_provider_changed)
+        layout_provider.addWidget(self.combo_provider)
+        
+        layout_ai.addWidget(group_provider)
+
+        # OpenAI Config
         self.group_ai_config = QGroupBox("OpenAI Configuration")
         layout_group_ai = QVBoxLayout(self.group_ai_config)
         
@@ -375,8 +394,32 @@ class SettingsWindow(QWidget):
         self.txt_api_key.setText(config.get('ai', {}).get('api_key', ''))
         self.txt_api_key.textChanged.connect(self.on_api_key_changed)
         layout_group_ai.addWidget(self.txt_api_key)
+
+        layout_group_ai.addWidget(QLabel("Model:"))
+        self.txt_openai_model = QLineEdit()
+        self.txt_openai_model.setText(config.get('ai', {}).get('openai_model', 'gpt-4o-mini'))
+        self.txt_openai_model.textChanged.connect(self.on_openai_model_changed)
+        layout_group_ai.addWidget(self.txt_openai_model)
         
         layout_ai.addWidget(self.group_ai_config)
+
+        # Ollama Config
+        self.group_ollama_config = QGroupBox("Ollama Configuration")
+        layout_group_ollama = QVBoxLayout(self.group_ollama_config)
+        
+        layout_group_ollama.addWidget(QLabel("Endpoint:"))
+        self.txt_ollama_endpoint = QLineEdit()
+        self.txt_ollama_endpoint.setText(config.get('ai', {}).get('ollama_endpoint', 'http://localhost:11434/api/chat'))
+        self.txt_ollama_endpoint.textChanged.connect(self.on_ollama_endpoint_changed)
+        layout_group_ollama.addWidget(self.txt_ollama_endpoint)
+        
+        layout_group_ollama.addWidget(QLabel("Model:"))
+        self.txt_ollama_model = QLineEdit()
+        self.txt_ollama_model.setText(config.get('ai', {}).get('ollama_model', 'llama3'))
+        self.txt_ollama_model.textChanged.connect(self.on_ollama_model_changed)
+        layout_group_ollama.addWidget(self.txt_ollama_model)
+        
+        layout_ai.addWidget(self.group_ollama_config)
 
         # Memory Control
         self.group_memory = QGroupBox("Memory")
@@ -657,8 +700,33 @@ class SettingsWindow(QWidget):
         self.update_ai_ui_state(checked)
         self.ai_enabled_toggled.emit(checked)
 
+    def on_provider_changed(self, index):
+        provider = self.combo_provider.currentData()
+        self.config.setdefault('ai', {})['provider'] = provider
+        self.update_ai_ui_state(self.chk_ai_enabled.isChecked())
+        self.ai_settings_changed.emit()
+
+    def on_openai_model_changed(self, text):
+        self.config.setdefault('ai', {})['openai_model'] = text
+        self.ai_settings_changed.emit()
+
+    def on_ollama_endpoint_changed(self, text):
+        self.config.setdefault('ai', {})['ollama_endpoint'] = text
+        self.ai_settings_changed.emit()
+
+    def on_ollama_model_changed(self, text):
+        self.config.setdefault('ai', {})['ollama_model'] = text
+        self.ai_settings_changed.emit()
+
     def update_ai_ui_state(self, enabled):
-        self.group_ai_config.setEnabled(enabled)
+        self.combo_provider.setEnabled(enabled)
+        
+        provider = self.combo_provider.currentData()
+        is_openai = (provider == 'openai')
+        is_ollama = (provider == 'ollama')
+        
+        self.group_ai_config.setVisible(enabled and is_openai)
+        self.group_ollama_config.setVisible(enabled and is_ollama)
         self.group_memory.setEnabled(enabled)
 
     def pick_bg_color(self):

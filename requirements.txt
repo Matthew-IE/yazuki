@@ -8,5 +8,6 @@ scipy
 typecast-python
 httpx
 openai-whisper
+gradio_client
 # live2d-py  <-- Uncomment if you have the prebuilt wheels or can build it. 
 # Otherwise, the app will run in "Mock" mode.

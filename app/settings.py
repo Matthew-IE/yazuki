@@ -1,5 +1,5 @@
 import os
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QGroupBox, QSpinBox, QTabWidget, QFrame, QLineEdit, QComboBox, QColorDialog) # type: ignore
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QGroupBox, QSpinBox, QTabWidget, QFrame, QLineEdit, QComboBox, QColorDialog, QFileDialog) # type: ignore
 from PySide6.QtCore import Qt, Signal # type: ignore
 from PySide6.QtGui import QIcon, QColor, QKeySequence, QKeyEvent # type: ignore
 from app.ai_manager import AIManager
@@ -452,29 +452,91 @@ class SettingsWindow(QWidget):
         layout_tts = QVBoxLayout(tab_tts)
         
         # Enable TTS
-        self.chk_tts_enabled = QCheckBox("Enable Typecast.ai TTS")
+        self.chk_tts_enabled = QCheckBox("Enable TTS")
         self.chk_tts_enabled.setChecked(config.get('typecast', {}).get('enabled', False))
         self.chk_tts_enabled.toggled.connect(self.on_tts_enabled_toggled)
         layout_tts.addWidget(self.chk_tts_enabled)
+
+        # TTS Provider Selection
+        group_tts_provider = QGroupBox("TTS Provider")
+        layout_tts_provider = QVBoxLayout(group_tts_provider)
         
-        group_tts = QGroupBox("Typecast Configuration")
-        layout_group_tts = QVBoxLayout(group_tts)
+        layout_tts_provider.addWidget(QLabel("Select Provider:"))
+        self.combo_tts_provider = QComboBox()
+        self.combo_tts_provider.addItem("Typecast.ai", "typecast")
+        self.combo_tts_provider.addItem("GPT-SoVITS (Local)", "gpt_sovits")
         
-        layout_group_tts.addWidget(QLabel("API Key:"))
+        current_tts_provider = config.get('tts', {}).get('provider', 'typecast')
+        index = self.combo_tts_provider.findData(current_tts_provider)
+        if index >= 0:
+            self.combo_tts_provider.setCurrentIndex(index)
+        self.combo_tts_provider.currentIndexChanged.connect(self.on_tts_provider_changed)
+        layout_tts_provider.addWidget(self.combo_tts_provider)
+        
+        layout_tts.addWidget(group_tts_provider)
+        self.group_tts_provider = group_tts_provider
+        
+        # Typecast Config
+        self.group_typecast_config = QGroupBox("Typecast Configuration")
+        layout_group_typecast = QVBoxLayout(self.group_typecast_config)
+        
+        layout_group_typecast.addWidget(QLabel("API Key:"))
         self.txt_tts_api_key = QLineEdit()
         self.txt_tts_api_key.setEchoMode(QLineEdit.Password)
         self.txt_tts_api_key.setText(config.get('typecast', {}).get('api_key', ''))
         self.txt_tts_api_key.textChanged.connect(self.on_tts_api_key_changed)
-        layout_group_tts.addWidget(self.txt_tts_api_key)
+        layout_group_typecast.addWidget(self.txt_tts_api_key)
         
-        layout_group_tts.addWidget(QLabel("Voice ID:"))
+        layout_group_typecast.addWidget(QLabel("Voice ID:"))
         self.txt_tts_voice_id = QLineEdit()
         self.txt_tts_voice_id.setText(config.get('typecast', {}).get('voice_id', ''))
         self.txt_tts_voice_id.textChanged.connect(self.on_tts_voice_id_changed)
-        layout_group_tts.addWidget(self.txt_tts_voice_id)
+        layout_group_typecast.addWidget(self.txt_tts_voice_id)
         
-        layout_tts.addWidget(group_tts)
-        self.group_tts_config = group_tts
+        layout_tts.addWidget(self.group_typecast_config)
+
+        # GPT-SoVITS Config
+        self.group_sovits_config = QGroupBox("GPT-SoVITS Configuration")
+        layout_group_sovits = QVBoxLayout(self.group_sovits_config)
+        
+        layout_group_sovits.addWidget(QLabel("API Endpoint:"))
+        self.txt_sovits_endpoint = QLineEdit()
+        self.txt_sovits_endpoint.setText(config.get('gpt_sovits', {}).get('endpoint', 'http://127.0.0.1:9880'))
+        self.txt_sovits_endpoint.textChanged.connect(self.on_sovits_endpoint_changed)
+        layout_group_sovits.addWidget(self.txt_sovits_endpoint)
+        
+        layout_group_sovits.addWidget(QLabel("Reference Audio Path:"))
+        ref_audio_layout = QHBoxLayout()
+        self.txt_sovits_ref_audio = QLineEdit()
+        self.txt_sovits_ref_audio.setText(config.get('gpt_sovits', {}).get('ref_audio_path', ''))
+        self.txt_sovits_ref_audio.textChanged.connect(self.on_sovits_ref_audio_changed)
+        ref_audio_layout.addWidget(self.txt_sovits_ref_audio)
+        
+        btn_browse_ref = QPushButton("Browse...")
+        btn_browse_ref.clicked.connect(self.browse_ref_audio)
+        ref_audio_layout.addWidget(btn_browse_ref)
+        
+        layout_group_sovits.addLayout(ref_audio_layout)
+
+        layout_group_sovits.addWidget(QLabel("Prompt Text:"))
+        self.txt_sovits_prompt_text = QLineEdit()
+        self.txt_sovits_prompt_text.setText(config.get('gpt_sovits', {}).get('prompt_text', ''))
+        self.txt_sovits_prompt_text.textChanged.connect(self.on_sovits_prompt_text_changed)
+        layout_group_sovits.addWidget(self.txt_sovits_prompt_text)
+
+        layout_group_sovits.addWidget(QLabel("Prompt Language:"))
+        self.txt_sovits_prompt_lang = QLineEdit()
+        self.txt_sovits_prompt_lang.setText(config.get('gpt_sovits', {}).get('prompt_lang', 'en'))
+        self.txt_sovits_prompt_lang.textChanged.connect(self.on_sovits_prompt_lang_changed)
+        layout_group_sovits.addWidget(self.txt_sovits_prompt_lang)
+
+        layout_group_sovits.addWidget(QLabel("Target Language:"))
+        self.txt_sovits_text_lang = QLineEdit()
+        self.txt_sovits_text_lang.setText(config.get('gpt_sovits', {}).get('text_lang', 'en'))
+        self.txt_sovits_text_lang.textChanged.connect(self.on_sovits_text_lang_changed)
+        layout_group_sovits.addWidget(self.txt_sovits_text_lang)
+        
+        layout_tts.addWidget(self.group_sovits_config)
         
         self.update_tts_ui_state(self.chk_tts_enabled.isChecked())
         
@@ -504,6 +566,12 @@ class SettingsWindow(QWidget):
         self.update_tts_ui_state(checked)
         self.tts_settings_changed.emit()
 
+    def on_tts_provider_changed(self, index):
+        provider = self.combo_tts_provider.currentData()
+        self.config.setdefault('tts', {})['provider'] = provider
+        self.update_tts_ui_state(self.chk_tts_enabled.isChecked())
+        self.tts_settings_changed.emit()
+
     def on_tts_api_key_changed(self, text):
         self.config.setdefault('typecast', {})['api_key'] = text
         self.tts_settings_changed.emit()
@@ -512,8 +580,40 @@ class SettingsWindow(QWidget):
         self.config.setdefault('typecast', {})['voice_id'] = text
         self.tts_settings_changed.emit()
 
+    def on_sovits_endpoint_changed(self, text):
+        self.config.setdefault('gpt_sovits', {})['endpoint'] = text
+        self.tts_settings_changed.emit()
+
+    def on_sovits_ref_audio_changed(self, text):
+        self.config.setdefault('gpt_sovits', {})['ref_audio_path'] = text
+        self.tts_settings_changed.emit()
+
+    def browse_ref_audio(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select Reference Audio", "", "Audio Files (*.wav *.mp3)")
+        if file_path:
+            self.txt_sovits_ref_audio.setText(file_path)
+
+    def on_sovits_prompt_text_changed(self, text):
+        self.config.setdefault('gpt_sovits', {})['prompt_text'] = text
+        self.tts_settings_changed.emit()
+
+    def on_sovits_prompt_lang_changed(self, text):
+        self.config.setdefault('gpt_sovits', {})['prompt_lang'] = text
+        self.tts_settings_changed.emit()
+
+    def on_sovits_text_lang_changed(self, text):
+        self.config.setdefault('gpt_sovits', {})['text_lang'] = text
+        self.tts_settings_changed.emit()
+
     def update_tts_ui_state(self, enabled):
-        self.group_tts_config.setEnabled(enabled)
+        self.group_tts_provider.setEnabled(enabled)
+        
+        provider = self.combo_tts_provider.currentData()
+        is_typecast = (provider == 'typecast')
+        is_sovits = (provider == 'gpt_sovits')
+        
+        self.group_typecast_config.setVisible(enabled and is_typecast)
+        self.group_sovits_config.setVisible(enabled and is_sovits)
 
     def on_scale_change(self, value):
         scale = value / 100.0

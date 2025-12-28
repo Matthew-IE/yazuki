@@ -8,6 +8,7 @@ import sounddevice as sd # type: ignore
 from scipy.io.wavfile import write, read # type: ignore
 from openai import OpenAI # type: ignore
 from app.ai import get_ai_provider
+from app.tts import get_tts_provider
 
 class AIManager:
     def __init__(self, config):
@@ -17,6 +18,7 @@ class AIManager:
         self.samplerate = 44100
         self.client = None
         self.provider = None
+        self.tts_provider = None
         self.history = []
         self.system_prompt = "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting."
         self.memory_enabled = config.get('ai', {}).get('memory_enabled', True)
@@ -46,6 +48,9 @@ class AIManager:
             
         # Setup Chat Provider
         self.provider = get_ai_provider(self.config)
+        
+        # Setup TTS Provider
+        self.tts_provider = get_tts_provider(self.config)
 
     def get_input_devices(self):
         try:
@@ -169,74 +174,62 @@ class AIManager:
                 self.history.append({"role": "assistant", "content": reply})
             
             print(f"AI replied: {reply}")
-            callback(reply)
             
-            # TTS (Typecast)
-            if self.config.get('typecast', {}).get('enabled', False):
-                try:
-                    from typecast.client import Typecast # type: ignore
-                    from typecast.models import TTSRequest # type: ignore
+            # TTS Generation
+            audio_played = False
+            if self.tts_provider:
+                print("Generating speech...")
+                samplerate, data = self.tts_provider.generate_audio(reply)
+                
+                if samplerate and data is not None:
+                    # Show text when audio starts
+                    callback(reply)
+                    audio_played = True
                     
-                    tts_api_key = self.config.get('typecast', {}).get('api_key', '')
-                    voice_id = self.config.get('typecast', {}).get('voice_id', '')
+                    # Simple Lip Sync Loop
+                    # We need to play audio and update lip sync value simultaneously
+                    # Since sd.play is non-blocking, we can loop while it plays
                     
-                    if tts_api_key and voice_id:
-                        print("Generating speech...")
-                        cli = Typecast(api_key=tts_api_key)
-                        tts_response = cli.text_to_speech(TTSRequest(
-                            text=reply,
-                            voice_id=voice_id,
-                            model="ssfm-v21"
-                        ))
+                    duration = len(data) / samplerate
+                    start_time = time.time()
+                    
+                    sd.play(data, samplerate)
+                    
+                    while time.time() - start_time < duration:
+                        # Calculate current amplitude for lip sync
+                        # Get current position in samples
+                        current_time = time.time() - start_time
+                        sample_idx = int(current_time * samplerate)
                         
-                        # Play audio
-                        # Convert raw bytes to numpy array using scipy
-                        samplerate, data = read(io.BytesIO(tts_response.audio_data))
-                        
-                        # Simple Lip Sync Loop
-                        # We need to play audio and update lip sync value simultaneously
-                        # Since sd.play is non-blocking, we can loop while it plays
-                        
-                        duration = len(data) / samplerate
-                        start_time = time.time()
-                        
-                        sd.play(data, samplerate)
-                        
-                        while time.time() - start_time < duration:
-                            # Calculate current amplitude for lip sync
-                            # Get current position in samples
-                            current_time = time.time() - start_time
-                            sample_idx = int(current_time * samplerate)
+                        if sample_idx < len(data):
+                            # Get a small chunk around current sample
+                            chunk_size = 1024
+                            start = max(0, sample_idx - chunk_size // 2)
+                            end = min(len(data), sample_idx + chunk_size // 2)
+                            chunk = data[start:end]
                             
-                            if sample_idx < len(data):
-                                # Get a small chunk around current sample
-                                chunk_size = 1024
-                                start = max(0, sample_idx - chunk_size // 2)
-                                end = min(len(data), sample_idx + chunk_size // 2)
-                                chunk = data[start:end]
+                            if len(chunk) > 0:
+                                # Calculate RMS amplitude
+                                # Normalize to 0-1 range (assuming 16-bit audio)
+                                rms = np.sqrt(np.mean(chunk.astype(float)**2))
+                                amplitude = rms / 32768.0
                                 
-                                if len(chunk) > 0:
-                                    # Calculate RMS amplitude
-                                    # Normalize to 0-1 range (assuming 16-bit audio)
-                                    rms = np.sqrt(np.mean(chunk.astype(float)**2))
-                                    amplitude = rms / 32768.0
-                                    
-                                    # Scale up a bit to make mouth open more visible
-                                    lip_value = min(1.0, amplitude * self.mouth_sensitivity)
-                                    
-                                    if lip_sync_callback:
-                                        lip_sync_callback(lip_value)
-                            
-                            time.sleep(0.016) # ~60fps update
-                            
-                        if lip_sync_callback:
-                            lip_sync_callback(0.0) # Close mouth
-                            
-                        sd.wait()
-                except ImportError:
-                    print("Typecast SDK not installed. Please run: pip install typecast-python")
-                except Exception as e:
-                    print(f"TTS Error: {e}")
+                                # Scale up a bit to make mouth open more visible
+                                lip_value = min(1.0, amplitude * self.mouth_sensitivity)
+                                
+                                if lip_sync_callback:
+                                    lip_sync_callback(lip_value)
+                        
+                        time.sleep(0.016) # ~60fps update
+                        
+                    if lip_sync_callback:
+                        lip_sync_callback(0.0) # Close mouth
+                        
+                    sd.wait()
+            
+            # Fallback: If no audio was played (TTS disabled or failed), show text now
+            if not audio_played:
+                callback(reply)
             
             # Cleanup
             if os.path.exists(filename):

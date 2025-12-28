@@ -23,7 +23,7 @@ HOTKEY_ID_F8 = 1
 HOTKEY_ID_F9 = 2
 
 class OverlayWindow(QMainWindow):
-    ai_response_received = Signal(str)
+    ai_response_received = Signal(str, float)
     lip_sync_updated = Signal(float)
 
     def __init__(self, config, renderer_widget):
@@ -95,6 +95,7 @@ class OverlayWindow(QMainWindow):
         self.settings_window.ai_enabled_toggled.connect(self.set_ai_enabled)
         self.settings_window.tts_settings_changed.connect(self.update_ai_settings)
         self.settings_window.mouth_sensitivity_changed.connect(self.set_mouth_sensitivity)
+        self.settings_window.system_prompt_changed.connect(self.set_system_prompt)
 
         # System Tray Icon
         self.init_tray_icon()
@@ -141,12 +142,12 @@ class OverlayWindow(QMainWindow):
     def set_input_key(self, vk_code):
         self.input_key_vk = vk_code
 
-    def on_ai_response(self, text):
+    def on_ai_response(self, text, duration):
         # This might be called from a thread, so we should be careful with UI updates
         # But setText is usually thread-safe enough for simple strings, or we use signals.
         # For safety, let's assume it's okay or use QMetaObject.invokeMethod if needed.
         # Actually, let's just set it.
-        self.renderer.set_chat_text(text)
+        self.renderer.set_chat_text(text, duration)
         self.renderer.set_status_text("")
 
     def init_tray_icon(self):
@@ -309,6 +310,10 @@ class OverlayWindow(QMainWindow):
         if self.ai_manager:
             self.ai_manager.set_mouth_sensitivity(value)
         self.config['render']['mouth_sensitivity'] = value
+
+    def set_system_prompt(self, prompt):
+        if self.ai_manager:
+            self.ai_manager.set_system_prompt(prompt)
 
     def save_settings(self):
         try:

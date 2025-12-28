@@ -1,5 +1,5 @@
 import os
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QGroupBox, QSpinBox, QTabWidget, QFrame, QLineEdit, QComboBox, QColorDialog, QFileDialog) # type: ignore
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QGroupBox, QSpinBox, QTabWidget, QFrame, QLineEdit, QComboBox, QColorDialog, QFileDialog, QPlainTextEdit) # type: ignore
 from PySide6.QtCore import Qt, Signal # type: ignore
 from PySide6.QtGui import QIcon, QColor, QKeySequence, QKeyEvent # type: ignore
 from app.ai_manager import AIManager
@@ -25,6 +25,7 @@ class SettingsWindow(QWidget):
     ai_enabled_toggled = Signal(bool)
     tts_settings_changed = Signal()
     mouth_sensitivity_changed = Signal(float)
+    system_prompt_changed = Signal(str)
 
     def __init__(self, config):
         super().__init__()
@@ -397,7 +398,7 @@ class SettingsWindow(QWidget):
 
         layout_group_ai.addWidget(QLabel("Model:"))
         self.txt_openai_model = QLineEdit()
-        self.txt_openai_model.setText(config.get('ai', {}).get('openai_model', 'gpt-4o-mini'))
+        self.txt_openai_model.setText(config.get('ai', {}).get('openai_model', 'gpt-5-nano'))
         self.txt_openai_model.textChanged.connect(self.on_openai_model_changed)
         layout_group_ai.addWidget(self.txt_openai_model)
         
@@ -435,6 +436,20 @@ class SettingsWindow(QWidget):
         layout_memory.addWidget(btn_clear_memory)
         
         layout_ai.addWidget(self.group_memory)
+
+        # Personality (System Prompt)
+        self.group_personality = QGroupBox("Personality (System Prompt)")
+        layout_personality = QVBoxLayout(self.group_personality)
+        
+        self.txt_system_prompt = QPlainTextEdit()
+        self.txt_system_prompt.setPlaceholderText("Enter the system prompt here...")
+        default_prompt = "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting."
+        self.txt_system_prompt.setPlainText(config.get('ai', {}).get('system_prompt', default_prompt))
+        self.txt_system_prompt.setMaximumHeight(100)
+        self.txt_system_prompt.textChanged.connect(self.on_system_prompt_changed)
+        
+        layout_personality.addWidget(self.txt_system_prompt)
+        layout_ai.addWidget(self.group_personality)
         
         # Apply initial state
         self.update_ai_ui_state(self.chk_ai_enabled.isChecked())
@@ -818,6 +833,11 @@ class SettingsWindow(QWidget):
         self.config.setdefault('ai', {})['ollama_model'] = text
         self.ai_settings_changed.emit()
 
+    def on_system_prompt_changed(self):
+        text = self.txt_system_prompt.toPlainText()
+        self.config.setdefault('ai', {})['system_prompt'] = text
+        self.system_prompt_changed.emit(text)
+
     def update_ai_ui_state(self, enabled):
         self.combo_provider.setEnabled(enabled)
         
@@ -828,6 +848,7 @@ class SettingsWindow(QWidget):
         self.group_ai_config.setVisible(enabled and is_openai)
         self.group_ollama_config.setVisible(enabled and is_ollama)
         self.group_memory.setEnabled(enabled)
+        self.group_personality.setEnabled(enabled)
 
     def pick_bg_color(self):
         color = QColorDialog.getColor(QColor(self.bg_color), self, "Select Background Color")

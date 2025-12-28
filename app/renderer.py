@@ -53,9 +53,11 @@ class RendererWidget(QOpenGLWidget):
         self.chat_offset_y = settings.get('offset_y', 0)
         self.update()
 
-    def set_chat_text(self, text):
+    def set_chat_text(self, text, duration=10.0):
         self.chat_text = text
-        self.chat_timer.start(10000) # Show for 10 seconds
+        # Ensure a minimum duration of 2 seconds, and add a small buffer
+        display_time = max(2.0, duration + 1.0)
+        self.chat_timer.start(int(display_time * 1000)) 
         self.update()
 
     def set_status_text(self, text):

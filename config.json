@@ -31,7 +31,8 @@
         "input_device": -1,
         "input_key_vk": 86,
         "input_key_name": "V",
-        "memory_enabled": false
+        "memory_enabled": false,
+        "system_prompt": "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting."
     },
     "typecast": {
         "enabled": false,

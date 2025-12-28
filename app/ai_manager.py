@@ -20,7 +20,7 @@ class AIManager:
         self.provider = None
         self.tts_provider = None
         self.history = []
-        self.system_prompt = "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting."
+        self.system_prompt = config.get('ai', {}).get('system_prompt', "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting.")
         self.memory_enabled = config.get('ai', {}).get('memory_enabled', True)
         self.mouth_sensitivity = config.get('render', {}).get('mouth_sensitivity', 5.0)
         self.local_whisper_model = None
@@ -29,6 +29,15 @@ class AIManager:
         
     def set_mouth_sensitivity(self, value):
         self.mouth_sensitivity = value
+
+    def set_system_prompt(self, prompt):
+        self.system_prompt = prompt
+        # Update current history if it exists and starts with system prompt
+        if self.history and self.history[0].get("role") == "system":
+            self.history[0]["content"] = prompt
+        else:
+            self.clear_memory()
+        print(f"System prompt updated.")
 
     def set_memory_enabled(self, enabled):
         self.memory_enabled = enabled
@@ -100,7 +109,7 @@ class AIManager:
         print("Recording stopped.")
         
         if not self.audio_data:
-            callback("Error: No audio recorded")
+            callback("Error: No audio recorded", 5.0)
             return
 
         # Process in a separate thread to not block UI
@@ -139,16 +148,16 @@ class AIManager:
                     result = self.local_whisper_model.transcribe(filename)
                     user_text = result["text"]
                 except ImportError:
-                    callback("Error: OpenAI Key missing and 'openai-whisper' not installed. Run: pip install openai-whisper")
+                    callback("Error: OpenAI Key missing and 'openai-whisper' not installed. Run: pip install openai-whisper", 10.0)
                     return
                 except Exception as e:
-                    callback(f"STT Error: {e}")
+                    callback(f"STT Error: {e}", 5.0)
                     return
 
             print(f"User said: {user_text}")
             
             if not user_text.strip():
-                callback("...")
+                callback("...", 2.0)
                 return
 
             print("Sending to AI...")
@@ -182,15 +191,16 @@ class AIManager:
                 samplerate, data = self.tts_provider.generate_audio(reply)
                 
                 if samplerate and data is not None:
+                    duration = len(data) / samplerate
+                    
                     # Show text when audio starts
-                    callback(reply)
+                    callback(reply, duration)
                     audio_played = True
                     
                     # Simple Lip Sync Loop
                     # We need to play audio and update lip sync value simultaneously
                     # Since sd.play is non-blocking, we can loop while it plays
                     
-                    duration = len(data) / samplerate
                     start_time = time.time()
                     
                     sd.play(data, samplerate)
@@ -229,7 +239,7 @@ class AIManager:
             
             # Fallback: If no audio was played (TTS disabled or failed), show text now
             if not audio_played:
-                callback(reply)
+                callback(reply, 5.0)
             
             # Cleanup
             if os.path.exists(filename):
@@ -237,4 +247,4 @@ class AIManager:
                 
         except Exception as e:
             print(f"AI Error: {e}")
-            callback(f"Error: {str(e)}")
+            callback(f"Error: {str(e)}", 5.0)

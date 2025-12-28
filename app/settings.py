@@ -20,6 +20,7 @@ class SettingsWindow(QWidget):
     ai_settings_changed = Signal()
     chat_settings_changed = Signal(dict)
     input_key_changed = Signal(int)
+    clear_memory_requested = Signal()
 
     def __init__(self, config):
         super().__init__()
@@ -344,6 +345,17 @@ class SettingsWindow(QWidget):
         layout_group_ai.addWidget(self.txt_api_key)
         
         layout_ai.addWidget(group_ai)
+
+        # Memory Control
+        group_memory = QGroupBox("Memory")
+        layout_memory = QVBoxLayout(group_memory)
+        
+        btn_clear_memory = QPushButton("Clear Conversation Memory")
+        btn_clear_memory.clicked.connect(self.clear_memory_requested.emit)
+        layout_memory.addWidget(btn_clear_memory)
+        
+        layout_ai.addWidget(group_memory)
+        
         layout_ai.addStretch()
         self.tabs.addTab(tab_ai, "AI")
 

@@ -13,8 +13,15 @@ class AIManager:
         self.audio_data = []
         self.samplerate = 44100
         self.client = None
+        self.history = []
+        self.system_prompt = "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting."
+        self.clear_memory()
         self.setup_client()
         
+    def clear_memory(self):
+        self.history = [{"role": "system", "content": self.system_prompt}]
+        print("Memory cleared.")
+
     def setup_client(self):
         api_key = self.config.get('ai', {}).get('api_key', '')
         if api_key:
@@ -105,15 +112,20 @@ class AIManager:
                 return
 
             print("Sending to AI...")
+            
+            # Append user message to history
+            self.history.append({"role": "user", "content": user_text})
+            
             # Chat
             response = self.client.chat.completions.create(
                 model="gpt-5-nano", 
-                messages=[
-                    {"role": "system", "content": "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting."},
-                    {"role": "user", "content": user_text}
-                ]
+                messages=self.history
             )
             reply = response.choices[0].message.content
+            
+            # Append AI reply to history
+            self.history.append({"role": "assistant", "content": reply})
+            
             print(f"AI replied: {reply}")
             callback(reply)
             

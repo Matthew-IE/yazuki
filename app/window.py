@@ -88,6 +88,7 @@ class OverlayWindow(QMainWindow):
         self.settings_window.ai_settings_changed.connect(self.update_ai_settings)
         self.settings_window.chat_settings_changed.connect(self.update_chat_settings)
         self.settings_window.input_key_changed.connect(self.set_input_key)
+        self.settings_window.clear_memory_requested.connect(self.clear_ai_memory)
 
         # System Tray Icon
         self.init_tray_icon()
@@ -360,6 +361,12 @@ class OverlayWindow(QMainWindow):
     def update_chat_settings(self, settings):
         self.config['chat'] = settings
         self.renderer.update_chat_settings(settings)
+
+    def clear_ai_memory(self):
+        self.ai_manager.clear_memory()
+        self.renderer.set_status_text("Memory Cleared")
+        # Clear status after 2 seconds
+        QTimer.singleShot(2000, lambda: self.renderer.set_status_text(""))
 
     def unregister_hotkeys(self):
         if sys.platform == "win32":

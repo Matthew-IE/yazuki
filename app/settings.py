@@ -1,5 +1,5 @@
 import os
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QGroupBox) # type: ignore
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QGroupBox, QSpinBox) # type: ignore
 from PySide6.QtCore import Qt, Signal # type: ignore
 from PySide6.QtGui import QIcon # type: ignore
 
@@ -11,6 +11,8 @@ class SettingsWindow(QWidget):
     always_on_top_toggled = Signal(bool)
     look_at_mouse_toggled = Signal(bool)
     sensitivity_changed = Signal(float)
+    resize_mode_toggled = Signal(bool)
+    window_size_changed = Signal(int, int)
     reload_requested = Signal()
 
     def __init__(self, config):
@@ -114,6 +116,28 @@ class SettingsWindow(QWidget):
         sensitivity_layout.addWidget(self.sensitivity_label)
         window_layout.addLayout(sensitivity_layout)
         
+        # Resize Mode / Window Size
+        self.chk_resize_mode = QCheckBox("Edit Window Size (Wireframe)")
+        self.chk_resize_mode.toggled.connect(self.resize_mode_toggled.emit)
+        window_layout.addWidget(self.chk_resize_mode)
+
+        size_layout = QHBoxLayout()
+        size_layout.addWidget(QLabel("W:"))
+        self.spin_width = QSpinBox()
+        self.spin_width.setRange(100, 4000)
+        self.spin_width.setValue(config['window']['width'])
+        self.spin_width.valueChanged.connect(self.on_size_changed)
+        size_layout.addWidget(self.spin_width)
+
+        size_layout.addWidget(QLabel("H:"))
+        self.spin_height = QSpinBox()
+        self.spin_height.setRange(100, 4000)
+        self.spin_height.setValue(config['window']['height'])
+        self.spin_height.valueChanged.connect(self.on_size_changed)
+        size_layout.addWidget(self.spin_height)
+        
+        window_layout.addLayout(size_layout)
+
         layout.addWidget(window_group)
         
         # --- Actions ---
@@ -146,6 +170,17 @@ class SettingsWindow(QWidget):
         sensitivity = value / 100.0
         self.sensitivity_label.setText(f"{sensitivity:.2f}")
         self.sensitivity_changed.emit(sensitivity)
+
+    def on_size_changed(self):
+        self.window_size_changed.emit(self.spin_width.value(), self.spin_height.value())
+
+    def update_size_display(self, w, h):
+        self.spin_width.blockSignals(True)
+        self.spin_height.blockSignals(True)
+        self.spin_width.setValue(w)
+        self.spin_height.setValue(h)
+        self.spin_width.blockSignals(False)
+        self.spin_height.blockSignals(False)
 
     def update_state(self, click_through):
         # Update UI if state changes externally (e.g. F8)

@@ -1,6 +1,6 @@
 from PySide6.QtOpenGLWidgets import QOpenGLWidget # type: ignore
-from PySide6.QtCore import QTimer # type: ignore
-from PySide6.QtGui import QCursor # type: ignore
+from PySide6.QtCore import QTimer, Qt # type: ignore
+from PySide6.QtGui import QCursor, QPainter, QPen, QColor # type: ignore
 from OpenGL.GL import * # type: ignore
 from app.live2d_manager import Live2DManager
 
@@ -8,6 +8,7 @@ class RendererWidget(QOpenGLWidget):
     def __init__(self, config):
         super().__init__()
         self.config = config
+        self.show_border = False
         self.live2d_manager = Live2DManager(self.config)
         self.timer = QTimer()
         self.timer.timeout.connect(self.update) # Trigger paintGL
@@ -49,6 +50,35 @@ class RendererWidget(QOpenGLWidget):
             self.live2d_manager.update(mx, my)
             
             self.live2d_manager.draw()
+
+    def paintEvent(self, event):
+        # Call the default paintEvent which calls paintGL
+        super().paintEvent(event)
+        
+        # Draw border overlay if enabled
+        if self.show_border:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+            
+            # Draw green border
+            pen = QPen(QColor(0, 255, 0))
+            pen.setWidth(4)
+            pen.setStyle(Qt.SolidLine)
+            painter.setPen(pen)
+            
+            # Adjust rect to be inside the widget
+            rect = self.rect().adjusted(2, 2, -2, -2)
+            painter.drawRect(rect)
+            
+            # Draw crosshair or grid for better sizing reference?
+            # Optional: Draw a faint grid
+            pen.setColor(QColor(0, 255, 0, 50))
+            pen.setWidth(1)
+            painter.setPen(pen)
+            painter.drawLine(rect.center().x(), rect.top(), rect.center().x(), rect.bottom())
+            painter.drawLine(rect.left(), rect.center().y(), rect.right(), rect.center().y())
+            
+            painter.end()
 
     def reload_model(self):
         if self.live2d_manager:

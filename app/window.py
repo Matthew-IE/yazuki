@@ -2,9 +2,9 @@ import sys
 import ctypes
 import os
 import subprocess
-from PySide6.QtCore import Qt, QPoint # type: ignore
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QSystemTrayIcon, QMenu # type: ignore
-from PySide6.QtGui import QKeyEvent, QIcon, QAction # type: ignore
+from PySide6.QtCore import Qt, QPoint, QSize # type: ignore
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QSystemTrayIcon, QMenu, QSizeGrip # type: ignore
+from PySide6.QtGui import QKeyEvent, QIcon, QAction, QPainter, QPen, QColor # type: ignore
 from app.settings import SettingsWindow
 
 # Windows API constants
@@ -45,6 +45,12 @@ class OverlayWindow(QMainWindow):
         self.click_through = config['window'].get('click_through', False)
         self.dragging = False
         self.drag_pos = QPoint()
+        self.resize_mode = False
+
+        # Size Grip (for resizing)
+        self.size_grip = QSizeGrip(self)
+        self.size_grip.setVisible(False)
+        self.size_grip.resize(20, 20)
 
         # Apply initial click-through state
         self.update_click_through()
@@ -58,6 +64,8 @@ class OverlayWindow(QMainWindow):
         self.settings_window.always_on_top_toggled.connect(self.set_always_on_top)
         self.settings_window.look_at_mouse_toggled.connect(self.set_look_at_mouse)
         self.settings_window.sensitivity_changed.connect(self.set_sensitivity)
+        self.settings_window.resize_mode_toggled.connect(self.set_resize_mode)
+        self.settings_window.window_size_changed.connect(self.set_window_size)
         self.settings_window.reload_requested.connect(self.reload_model)
 
         # System Tray Icon
@@ -139,6 +147,40 @@ class OverlayWindow(QMainWindow):
         if self.renderer.live2d_manager:
             self.renderer.live2d_manager.offset_y = offset
             self.renderer.update()
+    def set_resize_mode(self, enabled):
+        self.resize_mode = enabled
+        self.size_grip.setVisible(enabled)
+        
+        # Pass state to renderer for drawing border
+        if hasattr(self.renderer, 'show_border'):
+            self.renderer.show_border = enabled
+            self.renderer.update() # Trigger repaint
+        
+        if enabled:
+            # Disable click-through when resizing
+            if self.click_through:
+                self.toggle_click_through(force_state=False)
+        else:
+            # Restore click-through if it was enabled in config? 
+            # Or just leave it as is. User can re-enable it.
+            pass
+
+    def set_window_size(self, w, h):
+        self.resize(w, h)
+
+    def resizeEvent(self, event):
+        # Update size grip position
+        rect = self.rect()
+        self.size_grip.move(rect.right() - self.size_grip.width(), rect.bottom() - self.size_grip.height())
+        
+        # Update settings UI
+        self.settings_window.update_size_display(self.width(), self.height())
+        
+        # Update renderer
+        if self.renderer:
+            self.renderer.resize(self.width(), self.height())
+            
+        super().resizeEvent(event)
 
     def set_click_through(self, enabled):
         self.click_through = enabled

@@ -8,7 +8,7 @@ from OpenGL.GL import ( # type: ignore
 
 # Try to import live2d. 
 # This assumes the user has installed a package named 'live2d' or 'live2d-py' that exposes a 'live2d' module.
-# Common bindings: https://github.com/gwj916/live2d-py
+# Common bindings: https://github.com/EasyLive2D/live2d-py
 HAS_LIVE2D = False
 try:
     # Try v3 first (common in newer live2d-py)
@@ -108,17 +108,24 @@ class Live2DManager:
             # Update model state (time, physics, etc)
             
             if self.look_at_mouse:
-                # Calculate center
-                cx = self.width / 2
-                cy = self.height / 2
+                # Calculate model center in pixels
+                # Live2D coordinates (-1 to 1) map to min(width, height)
+                unit_to_pixel = min(self.width, self.height) / 2.0 if self.width > 0 and self.height > 0 else 1.0
                 
-                # Calculate delta from center
-                dx = mouse_x - cx
-                dy = mouse_y - cy
+                # Model center = Window Center + Offset in Pixels
+                # Note: offset_y is usually inverted in screen space (Positive Offset = Up = Negative Screen Y)
+                cx_model = (self.width / 2) + (self.offset_x * unit_to_pixel)
+                cy_model = (self.height / 2) - (self.offset_y * unit_to_pixel)
+                
+                # Calculate delta from model center
+                dx = mouse_x - cx_model
+                dy = mouse_y - cy_model
                 
                 # Apply sensitivity
-                target_x = cx + (dx * self.sensitivity)
-                target_y = cy + (dy * self.sensitivity)
+                # We apply the delta to the WINDOW center, because Drag() assumes the model is at the window center.
+                # By passing (WindowCenter + Delta), we tell Drag to look at a point relative to itself.
+                target_x = (self.width / 2) + (dx * self.sensitivity)
+                target_y = (self.height / 2) + (dy * self.sensitivity)
                 
                 # Use Drag to simulate looking
                 self.model.Drag(target_x, target_y)

@@ -1,5 +1,6 @@
 import sys
 import ctypes
+from ctypes import wintypes
 import os
 import subprocess
 from PySide6.QtCore import Qt, QPoint, QSize # type: ignore
@@ -11,6 +12,12 @@ from app.settings import SettingsWindow
 GWL_EXSTYLE = -20
 WS_EX_LAYERED = 0x00080000
 WS_EX_TRANSPARENT = 0x00000020
+WM_HOTKEY = 0x0312
+MOD_NONE = 0x0000
+VK_F8 = 0x77
+VK_F9 = 0x78
+HOTKEY_ID_F8 = 1
+HOTKEY_ID_F9 = 2
 
 class OverlayWindow(QMainWindow):
     def __init__(self, config, renderer_widget):
@@ -71,6 +78,9 @@ class OverlayWindow(QMainWindow):
 
         # System Tray Icon
         self.init_tray_icon()
+        
+        # Register Global Hotkeys
+        self.register_hotkeys()
 
     def init_tray_icon(self):
         self.tray_icon = QSystemTrayIcon(self)
@@ -253,4 +263,36 @@ class OverlayWindow(QMainWindow):
 
     def mouseReleaseEvent(self, event):
         self.dragging = False
+
+    def register_hotkeys(self):
+        if sys.platform == "win32":
+            hwnd = self.winId()
+            # Register F8
+            if not ctypes.windll.user32.RegisterHotKey(int(hwnd), HOTKEY_ID_F8, MOD_NONE, VK_F8):
+                print("Failed to register F8 hotkey")
+            # Register F9
+            if not ctypes.windll.user32.RegisterHotKey(int(hwnd), HOTKEY_ID_F9, MOD_NONE, VK_F9):
+                print("Failed to register F9 hotkey")
+
+    def unregister_hotkeys(self):
+        if sys.platform == "win32":
+            hwnd = self.winId()
+            ctypes.windll.user32.UnregisterHotKey(int(hwnd), HOTKEY_ID_F8)
+            ctypes.windll.user32.UnregisterHotKey(int(hwnd), HOTKEY_ID_F9)
+
+    def nativeEvent(self, eventType, message):
+        if eventType == b"windows_generic_MSG":
+            msg = wintypes.MSG.from_address(int(message))
+            if msg.message == WM_HOTKEY:
+                if msg.wParam == HOTKEY_ID_F8:
+                    self.toggle_click_through()
+                    return True, 0
+                elif msg.wParam == HOTKEY_ID_F9:
+                    self.reload_model()
+                    return True, 0
+        return super().nativeEvent(eventType, message)
+
+    def closeEvent(self, event):
+        self.unregister_hotkeys()
+        super().closeEvent(event)
 

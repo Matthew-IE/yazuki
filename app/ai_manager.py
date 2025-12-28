@@ -1,9 +1,10 @@
 import os
 import threading
 import queue
+import io
 import numpy as np # type: ignore
 import sounddevice as sd # type: ignore
-from scipy.io.wavfile import write # type: ignore
+from scipy.io.wavfile import write, read # type: ignore
 from openai import OpenAI # type: ignore
 
 class AIManager:
@@ -144,6 +145,34 @@ class AIManager:
             
             print(f"AI replied: {reply}")
             callback(reply)
+            
+            # TTS (Typecast)
+            if self.config.get('typecast', {}).get('enabled', False):
+                try:
+                    from typecast.client import Typecast
+                    from typecast.models import TTSRequest
+                    
+                    tts_api_key = self.config.get('typecast', {}).get('api_key', '')
+                    voice_id = self.config.get('typecast', {}).get('voice_id', '')
+                    
+                    if tts_api_key and voice_id:
+                        print("Generating speech...")
+                        cli = Typecast(api_key=tts_api_key)
+                        tts_response = cli.text_to_speech(TTSRequest(
+                            text=reply,
+                            voice_id=voice_id,
+                            model="ssfm-v21"
+                        ))
+                        
+                        # Play audio
+                        # Convert raw bytes to numpy array using scipy
+                        samplerate, data = read(io.BytesIO(tts_response.audio_data))
+                        sd.play(data, samplerate)
+                        sd.wait()
+                except ImportError:
+                    print("Typecast SDK not installed. Please run: pip install typecast-python")
+                except Exception as e:
+                    print(f"TTS Error: {e}")
             
             # Cleanup
             if os.path.exists(filename):

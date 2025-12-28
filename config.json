@@ -30,6 +30,11 @@
         "input_device": -1,
         "input_key_vk": 86,
         "input_key_name": "V",
-        "memory_enabled": true
+        "memory_enabled": false
+    },
+    "typecast": {
+        "enabled": false,
+        "api_key": "",
+        "voice_id": "tc_62a8975e695ad26f7fb514d1"
     }
 }

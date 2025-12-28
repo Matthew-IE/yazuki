@@ -14,6 +14,7 @@ A Python-based desktop companion that renders a Live2D Cubism model in a transpa
 - **Transparent Window**: Borderless and transparent background (only the character is visible).
 - **Always-on-Top**: Stays above other windows.
 - **AI Companion**: Integrated with OpenAI (Whisper & GPT) for voice interaction. Hold the hotkey to speak, and the character responds with a text bubble.
+- **Text-to-Speech (TTS)**: Integrated with **Typecast.ai** to give the character a voice.
 - **Interactive Eye Tracking**: The model follows your mouse cursor with adjustable sensitivity.
 - **Advanced Settings UI**: A modern, dark-themed settings window to control appearance, behavior, window properties, and AI configuration in real-time.
 - **Customizable Chat**: Fully personalize the chat bubble's appearance (Font, Color, Background, Position) via the Settings menu.
@@ -83,7 +84,8 @@ python -m app.main
   - **Behavior Tab**: Toggle "Look at Mouse" and adjust tracking sensitivity.
   - **Window Tab**: Toggle Click-Through, Always-on-Top, and enable "Edit Window Size" (Wireframe mode) to resize the window.
   - **Input Tab**: Select microphone device and configure the Voice Input Keybind.
-  - **AI Tab**: Configure OpenAI API Key.
+  - **AI Tab**: Configure OpenAI API Key, toggle AI features, and manage conversation memory.
+  - **TTS Tab**: Enable Typecast.ai TTS, enter API Key, and set Voice ID.
   - **Chat Tab**: Customize chat bubble font, color, and position.
 - **Left Click + Drag**: Move the character (only works when Click-Through is **OFF**).
 - **Hold 'V' (Default)**: Record voice input. Release to send to AI. (Keybind is customizable in Settings).
@@ -125,13 +127,35 @@ You can customize the application by editing `config.json` or using the Settings
         "offset_y": 0
     },
     "ai": {
+        "enabled": false,
         "api_key": "YOUR_OPENAI_API_KEY",
         "input_device": -1,
         "input_key_vk": 86,
-        "input_key_name": "V"
+        "input_key_name": "V",
+        "memory_enabled": false
+    },
+    "typecast": {
+        "enabled": false,
+        "api_key": "YOUR_TYPECAST_API_KEY",
+        "voice_id": "tc_62a8975e695ad26f7fb514d1"
     }
 }
 ```
+
+## Typecast.ai Setup (TTS)
+
+<details>
+<summary>Click to expand setup instructions</summary>
+
+To enable voice responses, this project uses [Typecast.ai](https://typecast.ai/).
+
+1.  **Sign Up**: Create an account at [Typecast.ai](https://typecast.ai/).
+2.  **Free Credits**: New users typically receive **30,000 characters** of free synthesis credits per month.
+3.  **Get API Key**: Go to your Dashboard or Developer settings to generate an API Key.
+4.  **Get Voice ID**: Browse the [Voices](https://typecast.ai/docs/voices) catalog to find a Voice ID (e.g., `tc_...`).
+5.  **Configure**: Enter these details in the **TTS** tab of the Settings window.
+
+</details>
 
 ## Troubleshooting
 

@@ -23,6 +23,7 @@ class SettingsWindow(QWidget):
     clear_memory_requested = Signal()
     memory_enabled_toggled = Signal(bool)
     ai_enabled_toggled = Signal(bool)
+    tts_settings_changed = Signal()
 
     def __init__(self, config):
         super().__init__()
@@ -380,6 +381,40 @@ class SettingsWindow(QWidget):
         self.init_chat_tab(tab_chat)
         self.tabs.addTab(tab_chat, "Chat")
 
+        # --- Tab 7: TTS ---
+        tab_tts = QWidget()
+        layout_tts = QVBoxLayout(tab_tts)
+        
+        # Enable TTS
+        self.chk_tts_enabled = QCheckBox("Enable Typecast.ai TTS")
+        self.chk_tts_enabled.setChecked(config.get('typecast', {}).get('enabled', False))
+        self.chk_tts_enabled.toggled.connect(self.on_tts_enabled_toggled)
+        layout_tts.addWidget(self.chk_tts_enabled)
+        
+        group_tts = QGroupBox("Typecast Configuration")
+        layout_group_tts = QVBoxLayout(group_tts)
+        
+        layout_group_tts.addWidget(QLabel("API Key:"))
+        self.txt_tts_api_key = QLineEdit()
+        self.txt_tts_api_key.setEchoMode(QLineEdit.Password)
+        self.txt_tts_api_key.setText(config.get('typecast', {}).get('api_key', ''))
+        self.txt_tts_api_key.textChanged.connect(self.on_tts_api_key_changed)
+        layout_group_tts.addWidget(self.txt_tts_api_key)
+        
+        layout_group_tts.addWidget(QLabel("Voice ID:"))
+        self.txt_tts_voice_id = QLineEdit()
+        self.txt_tts_voice_id.setText(config.get('typecast', {}).get('voice_id', ''))
+        self.txt_tts_voice_id.textChanged.connect(self.on_tts_voice_id_changed)
+        layout_group_tts.addWidget(self.txt_tts_voice_id)
+        
+        layout_tts.addWidget(group_tts)
+        self.group_tts_config = group_tts
+        
+        self.update_tts_ui_state(self.chk_tts_enabled.isChecked())
+        
+        layout_tts.addStretch()
+        self.tabs.addTab(tab_tts, "TTS")
+
         # --- Bottom Actions ---
         action_layout = QHBoxLayout()
         
@@ -397,6 +432,22 @@ class SettingsWindow(QWidget):
         action_layout.addWidget(btn_quit)
         
         main_layout.addLayout(action_layout)
+
+    def on_tts_enabled_toggled(self, checked):
+        self.config.setdefault('typecast', {})['enabled'] = checked
+        self.update_tts_ui_state(checked)
+        self.tts_settings_changed.emit()
+
+    def on_tts_api_key_changed(self, text):
+        self.config.setdefault('typecast', {})['api_key'] = text
+        self.tts_settings_changed.emit()
+
+    def on_tts_voice_id_changed(self, text):
+        self.config.setdefault('typecast', {})['voice_id'] = text
+        self.tts_settings_changed.emit()
+
+    def update_tts_ui_state(self, enabled):
+        self.group_tts_config.setEnabled(enabled)
 
     def on_scale_change(self, value):
         scale = value / 100.0

@@ -91,6 +91,7 @@ class OverlayWindow(QMainWindow):
         self.settings_window.clear_memory_requested.connect(self.clear_ai_memory)
         self.settings_window.memory_enabled_toggled.connect(self.set_memory_enabled)
         self.settings_window.ai_enabled_toggled.connect(self.set_ai_enabled)
+        self.settings_window.tts_settings_changed.connect(self.update_ai_settings)
 
         # System Tray Icon
         self.init_tray_icon()

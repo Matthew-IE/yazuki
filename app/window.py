@@ -24,6 +24,7 @@ HOTKEY_ID_F9 = 2
 
 class OverlayWindow(QMainWindow):
     ai_response_received = Signal(str)
+    lip_sync_updated = Signal(float)
 
     def __init__(self, config, renderer_widget):
         super().__init__()
@@ -33,6 +34,7 @@ class OverlayWindow(QMainWindow):
 
         # Connect AI signal
         self.ai_response_received.connect(self.on_ai_response)
+        self.lip_sync_updated.connect(self.renderer.set_lip_sync)
         
         # Window setup
         self.setWindowFlags(
@@ -92,6 +94,7 @@ class OverlayWindow(QMainWindow):
         self.settings_window.memory_enabled_toggled.connect(self.set_memory_enabled)
         self.settings_window.ai_enabled_toggled.connect(self.set_ai_enabled)
         self.settings_window.tts_settings_changed.connect(self.update_ai_settings)
+        self.settings_window.mouth_sensitivity_changed.connect(self.set_mouth_sensitivity)
 
         # System Tray Icon
         self.init_tray_icon()
@@ -125,7 +128,10 @@ class OverlayWindow(QMainWindow):
                 # Key Released
                 self.v_key_pressed = False
                 self.renderer.set_status_text("Thinking...")
-                self.ai_manager.stop_recording_and_process(self.ai_response_received.emit)
+                self.ai_manager.stop_recording_and_process(
+                    self.ai_response_received.emit,
+                    self.lip_sync_updated.emit
+                )
 
     def set_ai_enabled(self, enabled):
         self.config.setdefault('ai', {})['enabled'] = enabled
@@ -298,6 +304,11 @@ class OverlayWindow(QMainWindow):
         if self.renderer.live2d_manager:
             self.renderer.live2d_manager.sensitivity = value
         self.config['render']['sensitivity'] = value
+
+    def set_mouth_sensitivity(self, value):
+        if self.ai_manager:
+            self.ai_manager.set_mouth_sensitivity(value)
+        self.config['render']['mouth_sensitivity'] = value
 
     def save_settings(self):
         try:

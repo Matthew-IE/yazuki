@@ -24,6 +24,7 @@ class SettingsWindow(QWidget):
     memory_enabled_toggled = Signal(bool)
     ai_enabled_toggled = Signal(bool)
     tts_settings_changed = Signal()
+    mouth_sensitivity_changed = Signal(float)
 
     def __init__(self, config):
         super().__init__()
@@ -232,6 +233,28 @@ class SettingsWindow(QWidget):
         layout_tracking.addLayout(sensitivity_layout)
         
         layout_behavior.addWidget(group_tracking)
+
+        # Lip Sync Group
+        group_lipsync = QGroupBox("Lip Sync")
+        layout_lipsync = QVBoxLayout(group_lipsync)
+
+        # Mouth Sensitivity Slider
+        mouth_sens_layout = QHBoxLayout()
+        mouth_sens_layout.addWidget(QLabel("Mouth Sensitivity:"))
+        self.mouth_sens_slider = QSlider(Qt.Horizontal)
+        self.mouth_sens_slider.setMinimum(10)   # 1.0x
+        self.mouth_sens_slider.setMaximum(200)  # 20.0x
+        initial_mouth_sens = int(config['render'].get('mouth_sensitivity', 5.0) * 10)
+        self.mouth_sens_slider.setValue(initial_mouth_sens)
+        self.mouth_sens_slider.valueChanged.connect(self.on_mouth_sens_change)
+        self.mouth_sens_label = QLabel(f"{initial_mouth_sens/10.0:.1f}")
+        self.mouth_sens_label.setFixedWidth(40)
+        mouth_sens_layout.addWidget(self.mouth_sens_slider)
+        mouth_sens_layout.addWidget(self.mouth_sens_label)
+        layout_lipsync.addLayout(mouth_sens_layout)
+
+        layout_behavior.addWidget(group_lipsync)
+        
         layout_behavior.addStretch()
         self.tabs.addTab(tab_behavior, "Behavior")
         
@@ -480,6 +503,12 @@ class SettingsWindow(QWidget):
     def on_api_key_changed(self, text):
         self.config.setdefault('ai', {})['api_key'] = text
         self.ai_settings_changed.emit()
+
+    def on_mouth_sens_change(self, value):
+        sens = value / 10.0
+        self.mouth_sens_label.setText(f"{sens:.1f}")
+        self.config['render']['mouth_sensitivity'] = sens
+        self.mouth_sensitivity_changed.emit(sens)
 
     def update_size_display(self, w, h):
         self.spin_width.blockSignals(True)

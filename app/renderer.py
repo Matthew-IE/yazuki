@@ -66,6 +66,10 @@ class RendererWidget(QOpenGLWidget):
         self.chat_text = ""
         self.update()
 
+    def set_lip_sync(self, value):
+        if self.live2d_manager:
+            self.live2d_manager.set_lip_sync(value)
+
     def initializeGL(self):
         # Initialize OpenGL state
         glClearColor(0.0, 0.0, 0.0, 0.0) # Transparent background # type: ignore

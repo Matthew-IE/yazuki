@@ -2,6 +2,7 @@ import os
 import threading
 import queue
 import io
+import time
 import numpy as np # type: ignore
 import sounddevice as sd # type: ignore
 from scipy.io.wavfile import write, read # type: ignore
@@ -17,9 +18,13 @@ class AIManager:
         self.history = []
         self.system_prompt = "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting."
         self.memory_enabled = config.get('ai', {}).get('memory_enabled', True)
+        self.mouth_sensitivity = config.get('render', {}).get('mouth_sensitivity', 5.0)
         self.clear_memory()
         self.setup_client()
         
+    def set_mouth_sensitivity(self, value):
+        self.mouth_sensitivity = value
+
     def set_memory_enabled(self, enabled):
         self.memory_enabled = enabled
         print(f"Memory enabled: {enabled}")
@@ -76,7 +81,7 @@ class AIManager:
             print(status)
         self.audio_data.append(indata.copy())
 
-    def stop_recording_and_process(self, callback):
+    def stop_recording_and_process(self, callback, lip_sync_callback=None):
         if not self.recording: return
         self.recording = False
         self.record_thread.join()
@@ -87,10 +92,10 @@ class AIManager:
             return
 
         # Process in a separate thread to not block UI
-        process_thread = threading.Thread(target=self._process_audio, args=(callback,))
+        process_thread = threading.Thread(target=self._process_audio, args=(callback, lip_sync_callback))
         process_thread.start()
 
-    def _process_audio(self, callback):
+    def _process_audio(self, callback, lip_sync_callback=None):
         if not self.client:
             callback("Error: No API Key configured")
             return
@@ -167,7 +172,46 @@ class AIManager:
                         # Play audio
                         # Convert raw bytes to numpy array using scipy
                         samplerate, data = read(io.BytesIO(tts_response.audio_data))
+                        
+                        # Simple Lip Sync Loop
+                        # We need to play audio and update lip sync value simultaneously
+                        # Since sd.play is non-blocking, we can loop while it plays
+                        
+                        duration = len(data) / samplerate
+                        start_time = time.time()
+                        
                         sd.play(data, samplerate)
+                        
+                        while time.time() - start_time < duration:
+                            # Calculate current amplitude for lip sync
+                            # Get current position in samples
+                            current_time = time.time() - start_time
+                            sample_idx = int(current_time * samplerate)
+                            
+                            if sample_idx < len(data):
+                                # Get a small chunk around current sample
+                                chunk_size = 1024
+                                start = max(0, sample_idx - chunk_size // 2)
+                                end = min(len(data), sample_idx + chunk_size // 2)
+                                chunk = data[start:end]
+                                
+                                if len(chunk) > 0:
+                                    # Calculate RMS amplitude
+                                    # Normalize to 0-1 range (assuming 16-bit audio)
+                                    rms = np.sqrt(np.mean(chunk.astype(float)**2))
+                                    amplitude = rms / 32768.0
+                                    
+                                    # Scale up a bit to make mouth open more visible
+                                    lip_value = min(1.0, amplitude * self.mouth_sensitivity)
+                                    
+                                    if lip_sync_callback:
+                                        lip_sync_callback(lip_value)
+                            
+                            time.sleep(0.016) # ~60fps update
+                            
+                        if lip_sync_callback:
+                            lip_sync_callback(0.0) # Close mouth
+                            
                         sd.wait()
                 except ImportError:
                     print("Typecast SDK not installed. Please run: pip install typecast-python")

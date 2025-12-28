@@ -43,7 +43,11 @@ class Live2DManager:
         self.offset_y = config['render'].get('offset_y', 0.0)
         self.look_at_mouse = config['render'].get('look_at_mouse', True)
         self.sensitivity = config['render'].get('sensitivity', 0.35)
+        self.lip_sync_value = 0.0
         
+    def set_lip_sync(self, value):
+        self.lip_sync_value = value
+
     def init_gl(self):
         if self.has_live2d:
             try:
@@ -149,6 +153,10 @@ class Live2DManager:
         final_scale = self.scale * compensation
 
         if self.has_live2d and self.model:
+            # Update Lip Sync
+            # Parameter ID for mouth open is usually "ParamMouthOpenY"
+            self.model.SetParameterValue("ParamMouthOpenY", self.lip_sync_value, 1.0)
+            
             # Use LAppModel's SetScale instead of glScalef
             # Note: SetScale usually sets the scale relative to the model's base scale.
             # We might need to be careful if it accumulates, but usually it's a setter.

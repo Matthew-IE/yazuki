@@ -13,6 +13,9 @@ A Python-based desktop companion that renders a Live2D Cubism model in a transpa
 
 - **Transparent Window**: Borderless and transparent background (only the character is visible).
 - **Always-on-Top**: Stays above other windows.
+- **Interactive Eye Tracking**: The model follows your mouse cursor with adjustable sensitivity.
+- **Advanced Settings UI**: A modern, dark-themed settings window to control appearance, behavior, and window properties in real-time.
+- **Window Resizing**: "Edit Window Size" mode displays a wireframe border and resize grip to easily adjust the container size.
 - **System Tray Control**: A system tray icon allows you to control the app even when the window is in click-through mode.
 - **Click-Through Toggle**: Press `F8` or use the tray menu to toggle between interacting with the model (drag to move) and clicking through it.
 - **Live2D Rendering**: Supports Live2D Cubism models via `live2d-py`.
@@ -66,7 +69,10 @@ python -m app.main
 ## Controls
 
 - **System Tray Icon**: Right-click the icon in your taskbar to access the menu (Settings, Toggle Click-Through, Reload, Quit).
-- **Settings Window**: Accessible from the tray menu, allows real-time adjustment of scale, positioning, click-through, and always-on-top behavior.
+- **Settings Window**: Accessible from the tray menu.
+  - **Appearance Tab**: Adjust model scale and X/Y offset.
+  - **Behavior Tab**: Toggle "Look at Mouse" and adjust tracking sensitivity.
+  - **Window Tab**: Toggle Click-Through, Always-on-Top, and enable "Edit Window Size" (Wireframe mode) to resize the window.
 - **Left Click + Drag**: Move the character (only works when Click-Through is **OFF**).
 - **F8**: Toggle Click-Through Mode.
   - **OFF**: You can click and drag the character.

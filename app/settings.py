@@ -1,5 +1,5 @@
 import os
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QGroupBox, QSpinBox) # type: ignore
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QGroupBox, QSpinBox, QTabWidget, QFrame) # type: ignore
 from PySide6.QtCore import Qt, Signal # type: ignore
 from PySide6.QtGui import QIcon # type: ignore
 
@@ -25,30 +25,118 @@ class SettingsWindow(QWidget):
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
             
-        self.resize(300, 250)
+        self.resize(400, 350)
         
-        layout = QVBoxLayout(self)
+        # Apply Dark Theme
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #2b2b2b;
+                color: #ffffff;
+                font-family: 'Segoe UI', sans-serif;
+                font-size: 14px;
+            }
+            QGroupBox {
+                border: 1px solid #3d3d3d;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding-top: 15px;
+                font-weight: bold;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 5px;
+                color: #aaaaaa;
+            }
+            QTabWidget::pane {
+                border: 1px solid #3d3d3d;
+                background-color: #333333;
+                border-radius: 5px;
+            }
+            QTabBar::tab {
+                background: #2b2b2b;
+                color: #aaaaaa;
+                padding: 8px 12px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }
+            QTabBar::tab:selected {
+                background: #333333;
+                color: #ffffff;
+                border-bottom: 2px solid #007acc;
+            }
+            QSlider::groove:horizontal {
+                border: 1px solid #3d3d3d;
+                height: 6px;
+                background: #1e1e1e;
+                margin: 2px 0;
+                border-radius: 3px;
+            }
+            QSlider::handle:horizontal {
+                background: #007acc;
+                border: 1px solid #007acc;
+                width: 14px;
+                height: 14px;
+                margin: -5px 0;
+                border-radius: 7px;
+            }
+            QCheckBox {
+                spacing: 5px;
+            }
+            QCheckBox::indicator {
+                width: 16px;
+                height: 16px;
+            }
+            QPushButton {
+                background-color: #007acc;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #0098ff;
+            }
+            QPushButton:pressed {
+                background-color: #005c99;
+            }
+            QSpinBox {
+                background-color: #1e1e1e;
+                border: 1px solid #3d3d3d;
+                padding: 4px;
+                border-radius: 3px;
+            }
+        """)
         
-        # --- Render Settings ---
-        render_group = QGroupBox("Appearance")
-        render_layout = QVBoxLayout(render_group)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Tabs
+        self.tabs = QTabWidget()
+        main_layout.addWidget(self.tabs)
+        
+        # --- Tab 1: Appearance ---
+        tab_appearance = QWidget()
+        layout_appearance = QVBoxLayout(tab_appearance)
+        
+        # Scale
+        group_scale = QGroupBox("Model Scale & Position")
+        layout_scale = QVBoxLayout(group_scale)
         
         # Scale Slider
         scale_layout = QHBoxLayout()
         scale_layout.addWidget(QLabel("Scale:"))
-        
         self.scale_slider = QSlider(Qt.Horizontal)
         self.scale_slider.setMinimum(10)  # 0.1x
         self.scale_slider.setMaximum(300) # 3.0x
         initial_scale = int(config['render'].get('scale', 1.0) * 100)
         self.scale_slider.setValue(initial_scale)
         self.scale_slider.valueChanged.connect(self.on_scale_change)
-        
         self.scale_label = QLabel(f"{initial_scale/100:.2f}x")
-        
+        self.scale_label.setFixedWidth(40)
         scale_layout.addWidget(self.scale_slider)
         scale_layout.addWidget(self.scale_label)
-        render_layout.addLayout(scale_layout)
+        layout_scale.addLayout(scale_layout)
         
         # Offset X Slider
         offset_x_layout = QHBoxLayout()
@@ -60,9 +148,10 @@ class SettingsWindow(QWidget):
         self.offset_x_slider.setValue(initial_offset_x)
         self.offset_x_slider.valueChanged.connect(self.on_offset_x_change)
         self.offset_x_label = QLabel(f"{initial_offset_x/100:.2f}")
+        self.offset_x_label.setFixedWidth(40)
         offset_x_layout.addWidget(self.offset_x_slider)
         offset_x_layout.addWidget(self.offset_x_label)
-        render_layout.addLayout(offset_x_layout)
+        layout_scale.addLayout(offset_x_layout)
 
         # Offset Y Slider
         offset_y_layout = QHBoxLayout()
@@ -74,37 +163,31 @@ class SettingsWindow(QWidget):
         self.offset_y_slider.setValue(initial_offset_y)
         self.offset_y_slider.valueChanged.connect(self.on_offset_y_change)
         self.offset_y_label = QLabel(f"{initial_offset_y/100:.2f}")
+        self.offset_y_label.setFixedWidth(40)
         offset_y_layout.addWidget(self.offset_y_slider)
         offset_y_layout.addWidget(self.offset_y_label)
-        render_layout.addLayout(offset_y_layout)
-
-        layout.addWidget(render_group)
+        layout_scale.addLayout(offset_y_layout)
         
-        # --- Window Settings ---
-        window_group = QGroupBox("Window Behavior")
-        window_layout = QVBoxLayout(window_group)
+        layout_appearance.addWidget(group_scale)
+        layout_appearance.addStretch()
+        self.tabs.addTab(tab_appearance, "Appearance")
         
-        # Click Through
-        self.chk_click_through = QCheckBox("Click-Through (F8)")
-        self.chk_click_through.setChecked(config['window'].get('click_through', False))
-        self.chk_click_through.toggled.connect(self.click_through_toggled.emit)
-        window_layout.addWidget(self.chk_click_through)
+        # --- Tab 2: Behavior ---
+        tab_behavior = QWidget()
+        layout_behavior = QVBoxLayout(tab_behavior)
         
-        # Always on Top
-        self.chk_always_on_top = QCheckBox("Always on Top")
-        self.chk_always_on_top.setChecked(config['window'].get('always_on_top', True))
-        self.chk_always_on_top.toggled.connect(self.always_on_top_toggled.emit)
-        window_layout.addWidget(self.chk_always_on_top)
-
+        group_tracking = QGroupBox("Eye Tracking")
+        layout_tracking = QVBoxLayout(group_tracking)
+        
         # Look at Mouse
-        self.chk_look_at_mouse = QCheckBox("Look at Mouse")
+        self.chk_look_at_mouse = QCheckBox("Look at Mouse Cursor")
         self.chk_look_at_mouse.setChecked(config['render'].get('look_at_mouse', True))
         self.chk_look_at_mouse.toggled.connect(self.look_at_mouse_toggled.emit)
-        window_layout.addWidget(self.chk_look_at_mouse)
+        layout_tracking.addWidget(self.chk_look_at_mouse)
         
         # Sensitivity Slider
         sensitivity_layout = QHBoxLayout()
-        sensitivity_layout.addWidget(QLabel("Look Sensitivity:"))
+        sensitivity_layout.addWidget(QLabel("Sensitivity:"))
         self.sensitivity_slider = QSlider(Qt.Horizontal)
         self.sensitivity_slider.setMinimum(1)   # 0.01x
         self.sensitivity_slider.setMaximum(200) # 2.00x
@@ -112,44 +195,73 @@ class SettingsWindow(QWidget):
         self.sensitivity_slider.setValue(initial_sensitivity)
         self.sensitivity_slider.valueChanged.connect(self.on_sensitivity_change)
         self.sensitivity_label = QLabel(f"{initial_sensitivity/100:.2f}")
+        self.sensitivity_label.setFixedWidth(40)
         sensitivity_layout.addWidget(self.sensitivity_slider)
         sensitivity_layout.addWidget(self.sensitivity_label)
-        window_layout.addLayout(sensitivity_layout)
+        layout_tracking.addLayout(sensitivity_layout)
         
-        # Resize Mode / Window Size
+        layout_behavior.addWidget(group_tracking)
+        layout_behavior.addStretch()
+        self.tabs.addTab(tab_behavior, "Behavior")
+        
+        # --- Tab 3: Window ---
+        tab_window = QWidget()
+        layout_window = QVBoxLayout(tab_window)
+        
+        group_window = QGroupBox("Window Properties")
+        layout_group_window = QVBoxLayout(group_window)
+        
+        # Click Through
+        self.chk_click_through = QCheckBox("Click-Through Mode (F8)")
+        self.chk_click_through.setChecked(config['window'].get('click_through', False))
+        self.chk_click_through.toggled.connect(self.click_through_toggled.emit)
+        layout_group_window.addWidget(self.chk_click_through)
+        
+        # Always on Top
+        self.chk_always_on_top = QCheckBox("Always on Top")
+        self.chk_always_on_top.setChecked(config['window'].get('always_on_top', True))
+        self.chk_always_on_top.toggled.connect(self.always_on_top_toggled.emit)
+        layout_group_window.addWidget(self.chk_always_on_top)
+        
+        layout_window.addWidget(group_window)
+        
+        group_size = QGroupBox("Dimensions")
+        layout_size = QVBoxLayout(group_size)
+        
+        # Resize Mode
         self.chk_resize_mode = QCheckBox("Edit Window Size (Wireframe)")
         self.chk_resize_mode.toggled.connect(self.resize_mode_toggled.emit)
-        window_layout.addWidget(self.chk_resize_mode)
+        layout_size.addWidget(self.chk_resize_mode)
 
         size_layout = QHBoxLayout()
-        size_layout.addWidget(QLabel("W:"))
+        size_layout.addWidget(QLabel("Width:"))
         self.spin_width = QSpinBox()
         self.spin_width.setRange(100, 4000)
         self.spin_width.setValue(config['window']['width'])
         self.spin_width.valueChanged.connect(self.on_size_changed)
         size_layout.addWidget(self.spin_width)
 
-        size_layout.addWidget(QLabel("H:"))
+        size_layout.addWidget(QLabel("Height:"))
         self.spin_height = QSpinBox()
         self.spin_height.setRange(100, 4000)
         self.spin_height.setValue(config['window']['height'])
         self.spin_height.valueChanged.connect(self.on_size_changed)
         size_layout.addWidget(self.spin_height)
         
-        window_layout.addLayout(size_layout)
-
-        layout.addWidget(window_group)
+        layout_size.addLayout(size_layout)
+        layout_window.addWidget(group_size)
         
-        # --- Actions ---
+        layout_window.addStretch()
+        self.tabs.addTab(tab_window, "Window")
+
+        # --- Bottom Actions ---
         action_layout = QHBoxLayout()
         
         btn_reload = QPushButton("Reload Model")
         btn_reload.clicked.connect(self.reload_requested.emit)
         action_layout.addWidget(btn_reload)
         
-        layout.addLayout(action_layout)
-        
-        layout.addStretch()
+        main_layout.addLayout(action_layout)
 
     def on_scale_change(self, value):
         scale = value / 100.0

@@ -22,6 +22,7 @@ class SettingsWindow(QWidget):
     input_key_changed = Signal(int)
     clear_memory_requested = Signal()
     memory_enabled_toggled = Signal(bool)
+    ai_enabled_toggled = Signal(bool)
 
     def __init__(self, config):
         super().__init__()
@@ -335,8 +336,14 @@ class SettingsWindow(QWidget):
         tab_ai = QWidget()
         layout_ai = QVBoxLayout(tab_ai)
         
-        group_ai = QGroupBox("OpenAI Configuration")
-        layout_group_ai = QVBoxLayout(group_ai)
+        # Global AI Toggle
+        self.chk_ai_enabled = QCheckBox("Enable AI Features")
+        self.chk_ai_enabled.setChecked(config.get('ai', {}).get('enabled', False))
+        self.chk_ai_enabled.toggled.connect(self.on_ai_enabled_toggled)
+        layout_ai.addWidget(self.chk_ai_enabled)
+
+        self.group_ai_config = QGroupBox("OpenAI Configuration")
+        layout_group_ai = QVBoxLayout(self.group_ai_config)
         
         layout_group_ai.addWidget(QLabel("API Key:"))
         self.txt_api_key = QLineEdit()
@@ -345,11 +352,11 @@ class SettingsWindow(QWidget):
         self.txt_api_key.textChanged.connect(self.on_api_key_changed)
         layout_group_ai.addWidget(self.txt_api_key)
         
-        layout_ai.addWidget(group_ai)
+        layout_ai.addWidget(self.group_ai_config)
 
         # Memory Control
-        group_memory = QGroupBox("Memory")
-        layout_memory = QVBoxLayout(group_memory)
+        self.group_memory = QGroupBox("Memory")
+        layout_memory = QVBoxLayout(self.group_memory)
         
         self.chk_memory_enabled = QCheckBox("Enable Conversation Memory")
         self.chk_memory_enabled.setChecked(config.get('ai', {}).get('memory_enabled', True))
@@ -360,7 +367,10 @@ class SettingsWindow(QWidget):
         btn_clear_memory.clicked.connect(self.clear_memory_requested.emit)
         layout_memory.addWidget(btn_clear_memory)
         
-        layout_ai.addWidget(group_memory)
+        layout_ai.addWidget(self.group_memory)
+        
+        # Apply initial state
+        self.update_ai_ui_state(self.chk_ai_enabled.isChecked())
         
         layout_ai.addStretch()
         self.tabs.addTab(tab_ai, "AI")
@@ -561,6 +571,15 @@ class SettingsWindow(QWidget):
     def on_memory_toggled(self, checked):
         self.config.setdefault('ai', {})['memory_enabled'] = checked
         self.memory_enabled_toggled.emit(checked)
+
+    def on_ai_enabled_toggled(self, checked):
+        self.config.setdefault('ai', {})['enabled'] = checked
+        self.update_ai_ui_state(checked)
+        self.ai_enabled_toggled.emit(checked)
+
+    def update_ai_ui_state(self, enabled):
+        self.group_ai_config.setEnabled(enabled)
+        self.group_memory.setEnabled(enabled)
 
     def pick_bg_color(self):
         color = QColorDialog.getColor(QColor(self.bg_color), self, "Select Background Color")

@@ -90,6 +90,7 @@ class OverlayWindow(QMainWindow):
         self.settings_window.input_key_changed.connect(self.set_input_key)
         self.settings_window.clear_memory_requested.connect(self.clear_ai_memory)
         self.settings_window.memory_enabled_toggled.connect(self.set_memory_enabled)
+        self.settings_window.ai_enabled_toggled.connect(self.set_ai_enabled)
 
         # System Tray Icon
         self.init_tray_icon()
@@ -105,6 +106,10 @@ class OverlayWindow(QMainWindow):
         self.v_key_pressed = False
 
     def check_input_key(self):
+        # Check if AI is enabled
+        if not self.config.get('ai', {}).get('enabled', False):
+            return
+
         if sys.platform == "win32":
             # Check if configured key is down (high bit set)
             is_down = ctypes.windll.user32.GetAsyncKeyState(self.input_key_vk) & 0x8000
@@ -120,6 +125,11 @@ class OverlayWindow(QMainWindow):
                 self.v_key_pressed = False
                 self.renderer.set_status_text("Thinking...")
                 self.ai_manager.stop_recording_and_process(self.ai_response_received.emit)
+
+    def set_ai_enabled(self, enabled):
+        self.config.setdefault('ai', {})['enabled'] = enabled
+        if not enabled:
+            self.renderer.set_status_text("") # Clear any status
 
     def set_input_key(self, vk_code):
         self.input_key_vk = vk_code

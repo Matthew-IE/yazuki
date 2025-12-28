@@ -25,6 +25,7 @@
         "offset_y": 0
     },
     "ai": {
+        "enabled": false,
         "api_key": "",
         "input_device": -1,
         "input_key_vk": 86,

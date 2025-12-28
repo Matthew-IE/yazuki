@@ -2,6 +2,7 @@ import sys
 import ctypes
 from ctypes import wintypes
 import os
+import json
 import subprocess
 from PySide6.QtCore import Qt, QPoint, QSize # type: ignore
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QSystemTrayIcon, QMenu, QSizeGrip # type: ignore
@@ -74,6 +75,7 @@ class OverlayWindow(QMainWindow):
         self.settings_window.resize_mode_toggled.connect(self.set_resize_mode)
         self.settings_window.window_size_changed.connect(self.set_window_size)
         self.settings_window.reload_requested.connect(self.reload_model)
+        self.settings_window.save_requested.connect(self.save_settings)
         self.settings_window.quit_requested.connect(QApplication.quit)
 
         # System Tray Icon
@@ -137,6 +139,7 @@ class OverlayWindow(QMainWindow):
             self.click_through = not self.click_through
             self.action_click_through.setChecked(self.click_through)
             
+        self.config['window']['click_through'] = self.click_through
         self.update_click_through()
         self.settings_window.update_state(self.click_through)
 
@@ -152,16 +155,20 @@ class OverlayWindow(QMainWindow):
         if self.renderer.live2d_manager:
             self.renderer.live2d_manager.scale = scale
             self.renderer.update()
+        self.config['render']['scale'] = scale
 
     def on_offset_x_changed(self, offset):
         if self.renderer.live2d_manager:
             self.renderer.live2d_manager.offset_x = offset
             self.renderer.update()
+        self.config['render']['offset_x'] = offset
 
     def on_offset_y_changed(self, offset):
         if self.renderer.live2d_manager:
             self.renderer.live2d_manager.offset_y = offset
             self.renderer.update()
+        self.config['render']['offset_y'] = offset
+
     def set_resize_mode(self, enabled):
         self.resize_mode = enabled
         self.size_grip.setVisible(enabled)
@@ -182,6 +189,8 @@ class OverlayWindow(QMainWindow):
 
     def set_window_size(self, w, h):
         self.resize(w, h)
+        self.config['window']['width'] = w
+        self.config['window']['height'] = h
 
     def resizeEvent(self, event):
         # Update size grip position
@@ -190,6 +199,10 @@ class OverlayWindow(QMainWindow):
         
         # Update settings UI
         self.settings_window.update_size_display(self.width(), self.height())
+        
+        # Update config
+        self.config['window']['width'] = self.width()
+        self.config['window']['height'] = self.height()
         
         # Update renderer
         if self.renderer:
@@ -201,6 +214,7 @@ class OverlayWindow(QMainWindow):
         self.click_through = enabled
         self.update_click_through()
         self.action_click_through.setChecked(enabled)
+        self.config['window']['click_through'] = enabled
 
     def set_always_on_top(self, enabled):
         flags = self.windowFlags()
@@ -212,16 +226,31 @@ class OverlayWindow(QMainWindow):
         self.show() # Re-show needed after flag change
         # Re-apply click-through state because changing flags might reset window style
         self.update_click_through()
+        self.config['window']['always_on_top'] = enabled
 
     def set_look_at_mouse(self, enabled):
         if self.renderer.live2d_manager:
             self.renderer.live2d_manager.look_at_mouse = enabled
             # Force update to reset look direction if disabled
             self.renderer.update()
+        self.config['render']['look_at_mouse'] = enabled
 
     def set_sensitivity(self, value):
         if self.renderer.live2d_manager:
             self.renderer.live2d_manager.sensitivity = value
+        self.config['render']['sensitivity'] = value
+
+    def save_settings(self):
+        try:
+            # Update position in config before saving
+            self.config['window']['x'] = self.x()
+            self.config['window']['y'] = self.y()
+            
+            with open('config.json', 'w') as f:
+                json.dump(self.config, f, indent=4)
+            print("Settings saved to config.json")
+        except Exception as e:
+            print(f"Failed to save settings: {e}")
 
     def update_click_through(self):
         if sys.platform == "win32":

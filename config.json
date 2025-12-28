@@ -10,6 +10,10 @@
     },
     "render": {
         "scale": 1.0,
-        "fps": 60
+        "fps": 60,
+        "offset_x": 0.0,
+        "offset_y": 0.0,
+        "sensitivity": 0.35,
+        "look_at_mouse": true
     }
 }

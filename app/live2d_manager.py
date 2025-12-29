@@ -57,8 +57,31 @@ class Live2DManager:
         self.current_random_x = self.width / 2
         self.current_random_y = self.height / 2
         
+        # Expression state
+        self.expression_params = {}
+        self.emotions = {
+            "Joy": {"ParamEyeLSmile": 1.0, "ParamEyeRSmile": 1.0, "ParamMouthForm": 1.0},
+            "Happy": {"ParamEyeLSmile": 1.0, "ParamEyeRSmile": 1.0, "ParamMouthForm": 1.0},
+            "Anger": {"ParamBrowLY": -0.5, "ParamBrowRY": -0.5, "ParamBrowLAngle": 0.5, "ParamBrowRAngle": 0.5, "ParamMouthForm": -1.0},
+            "Angry": {"ParamBrowLY": -0.5, "ParamBrowRY": -0.5, "ParamBrowLAngle": 0.5, "ParamBrowRAngle": 0.5, "ParamMouthForm": -1.0},
+            "Surprise": {"ParamEyeLOpen": 1.2, "ParamEyeROpen": 1.2, "ParamBrowLY": 0.5, "ParamBrowRY": 0.5, "ParamMouthForm": -0.5},
+            "Neutral": {}
+        }
+        
     def set_lip_sync(self, value):
         self.lip_sync_value = value
+
+    def set_expression(self, emotion):
+        print(f"Setting expression: {emotion}")
+        if emotion in self.emotions:
+            self.expression_params = self.emotions[emotion]
+        else:
+            # If unknown emotion, try to find closest match or ignore
+            # For now, just ignore or reset if "Neutral"
+            if emotion == "Neutral":
+                self.expression_params = {}
+            else:
+                print(f"Unknown emotion: {emotion}")
 
     def init_gl(self):
         if self.has_live2d:
@@ -183,6 +206,10 @@ class Live2DManager:
                 self.model.Drag(self.width / 2, self.height / 2)
 
             self.model.Update()
+            
+            # Apply expression overrides
+            for param_id, value in self.expression_params.items():
+                self.model.SetParameterValue(param_id, value, 1.0)
         else:
             self.mock_angle += 2.0
             if self.mock_angle > 360:

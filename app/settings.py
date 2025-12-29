@@ -577,6 +577,12 @@ class SettingsWindow(QWidget):
         self.group_sovits_config = QGroupBox("GPT-SoVITS Configuration")
         layout_group_sovits = QVBoxLayout(self.group_sovits_config)
         
+        # Inference Version Toggle
+        self.chk_sovits_inference = QCheckBox("Use Inference Version (API v2)")
+        self.chk_sovits_inference.setChecked(config.get('gpt_sovits', {}).get('is_inference_version', False))
+        self.chk_sovits_inference.toggled.connect(self.on_sovits_inference_toggled)
+        layout_group_sovits.addWidget(self.chk_sovits_inference)
+
         layout_group_sovits.addWidget(QLabel("API Endpoint:"))
         self.txt_sovits_endpoint = QLineEdit()
         self.txt_sovits_endpoint.setText(config.get('gpt_sovits', {}).get('endpoint', 'http://127.0.0.1:9880'))
@@ -697,6 +703,10 @@ class SettingsWindow(QWidget):
 
     def on_sovits_prompt_text_changed(self, text):
         self.config.setdefault('gpt_sovits', {})['prompt_text'] = text
+        self.tts_settings_changed.emit()
+
+    def on_sovits_inference_toggled(self, checked):
+        self.config.setdefault('gpt_sovits', {})['is_inference_version'] = checked
         self.tts_settings_changed.emit()
 
     def on_sovits_prompt_lang_changed(self, text):

@@ -72,6 +72,10 @@ class RendererWidget(QOpenGLWidget):
         if self.live2d_manager:
             self.live2d_manager.set_lip_sync(value)
 
+    def set_expression(self, emotion):
+        if self.live2d_manager:
+            self.live2d_manager.set_expression(emotion)
+
     def initializeGL(self):
         # Initialize OpenGL state
         glClearColor(0.0, 0.0, 0.0, 0.0) # Transparent background # type: ignore

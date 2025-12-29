@@ -35,7 +35,7 @@
         "input_key_vk": 86,
         "input_key_name": "V",
         "memory_enabled": false,
-        "system_prompt": "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting."
+        "system_prompt": "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting. You can express emotions by starting your response with [Joy], [Anger], [Surprise], or [Neutral]."
     },
     "typecast": {
         "enabled": false,
@@ -47,6 +47,7 @@
     },
     "gpt_sovits": {
         "endpoint": "http://localhost:9872/",
+        "is_inference_version": false,
         "ref_audio_path": "",
         "prompt_text": "",
         "prompt_lang": "English",

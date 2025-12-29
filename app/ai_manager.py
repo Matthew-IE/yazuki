@@ -3,6 +3,7 @@ import threading
 import queue
 import io
 import time
+import re
 import numpy as np # type: ignore
 import sounddevice as sd # type: ignore
 from scipy.io.wavfile import write, read # type: ignore
@@ -20,7 +21,7 @@ class AIManager:
         self.provider = None
         self.tts_provider = None
         self.history = []
-        self.system_prompt = config.get('ai', {}).get('system_prompt', "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting.")
+        self.system_prompt = config.get('ai', {}).get('system_prompt', "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting. You can express emotions by starting your response with [Joy], [Anger], [Surprise], or [Neutral].")
         self.memory_enabled = config.get('ai', {}).get('memory_enabled', True)
         self.mouth_sensitivity = config.get('render', {}).get('mouth_sensitivity', 5.0)
         self.local_whisper_model = None
@@ -109,7 +110,7 @@ class AIManager:
         print("Recording stopped.")
         
         if not self.audio_data:
-            callback("Error: No audio recorded", 5.0)
+            callback("Error: No audio recorded", "Neutral", 5.0)
             return
 
         # Process in a separate thread to not block UI
@@ -148,16 +149,16 @@ class AIManager:
                     result = self.local_whisper_model.transcribe(filename)
                     user_text = result["text"]
                 except ImportError:
-                    callback("Error: OpenAI Key missing and 'openai-whisper' not installed. Run: pip install openai-whisper", 10.0)
+                    callback("Error: OpenAI Key missing and 'openai-whisper' not installed. Run: pip install openai-whisper", "Neutral", 10.0)
                     return
                 except Exception as e:
-                    callback(f"STT Error: {e}", 5.0)
+                    callback(f"STT Error: {e}", "Neutral", 5.0)
                     return
 
             print(f"User said: {user_text}")
             
             if not user_text.strip():
-                callback("...", 2.0)
+                callback("...", "Neutral", 2.0)
                 return
 
             print("Sending to AI...")
@@ -176,13 +177,21 @@ class AIManager:
                 ]
             
             # Chat
-            reply = self.provider.chat(messages_to_send)
+            raw_reply = self.provider.chat(messages_to_send)
+            
+            # Extract Emotion
+            emotion = "Neutral"
+            emotion_match = re.search(r'\[([a-zA-Z0-9_]+)\]', raw_reply)
+            reply = raw_reply
+            if emotion_match:
+                emotion = emotion_match.group(1)
+                reply = re.sub(r'\[.*?\]', '', raw_reply).strip()
             
             if self.memory_enabled:
                 # Append AI reply to history
-                self.history.append({"role": "assistant", "content": reply})
+                self.history.append({"role": "assistant", "content": raw_reply})
             
-            print(f"AI replied: {reply}")
+            print(f"AI replied: {reply} (Emotion: {emotion})")
             
             # TTS Generation
             audio_played = False
@@ -194,7 +203,7 @@ class AIManager:
                     duration = len(data) / samplerate
                     
                     # Show text when audio starts
-                    callback(reply, duration)
+                    callback(reply, emotion, duration)
                     audio_played = True
                     
                     # Simple Lip Sync Loop
@@ -239,7 +248,7 @@ class AIManager:
             
             # Fallback: If no audio was played (TTS disabled or failed), show text now
             if not audio_played:
-                callback(reply, 5.0)
+                callback(reply, emotion, 5.0)
             
             # Cleanup
             if os.path.exists(filename):
@@ -247,4 +256,4 @@ class AIManager:
                 
         except Exception as e:
             print(f"AI Error: {e}")
-            callback(f"Error: {str(e)}", 5.0)
+            callback(f"Error: {str(e)}", "Neutral", 5.0)

@@ -23,7 +23,7 @@ HOTKEY_ID_F8 = 1
 HOTKEY_ID_F9 = 2
 
 class OverlayWindow(QMainWindow):
-    ai_response_received = Signal(str, float)
+    ai_response_received = Signal(str, str, float)
     lip_sync_updated = Signal(float)
 
     def __init__(self, config, renderer_widget):
@@ -145,13 +145,16 @@ class OverlayWindow(QMainWindow):
     def set_input_key(self, vk_code):
         self.input_key_vk = vk_code
 
-    def on_ai_response(self, text, duration):
+    def on_ai_response(self, text, emotion, duration):
         # This might be called from a thread, so we should be careful with UI updates
         # But setText is usually thread-safe enough for simple strings, or we use signals.
         # For safety, let's assume it's okay or use QMetaObject.invokeMethod if needed.
         # Actually, let's just set it.
         self.renderer.set_chat_text(text, duration)
         self.renderer.set_status_text("")
+        
+        if hasattr(self.renderer, 'set_expression'):
+            self.renderer.set_expression(emotion)
 
     def init_tray_icon(self):
         self.tray_icon = QSystemTrayIcon(self)

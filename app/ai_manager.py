@@ -142,8 +142,8 @@ class AIManager:
                 try:
                     import whisper # type: ignore
                     if self.local_whisper_model is None:
-                        print("Loading local Whisper model (small)...")
-                        self.local_whisper_model = whisper.load_model("small")
+                        print("Loading local Whisper model (base.en)...")
+                        self.local_whisper_model = whisper.load_model("base.en")
                     
                     result = self.local_whisper_model.transcribe(filename)
                     user_text = result["text"]

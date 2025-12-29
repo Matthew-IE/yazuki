@@ -197,7 +197,9 @@ class AIManager:
             audio_played = False
             if self.tts_provider:
                 print("Generating speech...")
-                samplerate, data = self.tts_provider.generate_audio(reply)
+                # Replace hyphens with spaces for TTS to prevent "minus" pronunciation
+                tts_text = reply.replace("-", " ")
+                samplerate, data = self.tts_provider.generate_audio(tts_text)
                 
                 if samplerate and data is not None:
                     duration = len(data) / samplerate

@@ -81,6 +81,9 @@ class OverlayWindow(QMainWindow):
         self.settings_window.click_through_toggled.connect(self.set_click_through)
         self.settings_window.always_on_top_toggled.connect(self.set_always_on_top)
         self.settings_window.look_at_mouse_toggled.connect(self.set_look_at_mouse)
+        self.settings_window.random_look_toggled.connect(self.set_random_look)
+        self.settings_window.random_interval_changed.connect(self.set_random_interval)
+        self.settings_window.random_radius_changed.connect(self.set_random_radius)
         self.settings_window.sensitivity_changed.connect(self.set_sensitivity)
         self.settings_window.resize_mode_toggled.connect(self.set_resize_mode)
         self.settings_window.window_size_changed.connect(self.set_window_size)
@@ -300,6 +303,21 @@ class OverlayWindow(QMainWindow):
             # Force update to reset look direction if disabled
             self.renderer.update()
         self.config['render']['look_at_mouse'] = enabled
+
+    def set_random_look(self, enabled):
+        if self.renderer.live2d_manager:
+            self.renderer.live2d_manager.random_look = enabled
+        self.config['render']['random_look'] = enabled
+
+    def set_random_interval(self, value):
+        if self.renderer.live2d_manager:
+            self.renderer.live2d_manager.random_interval_base = value
+        self.config['render']['random_interval'] = value
+
+    def set_random_radius(self, value):
+        if self.renderer.live2d_manager:
+            self.renderer.live2d_manager.random_radius = value
+        self.config['render']['random_radius'] = value
 
     def set_sensitivity(self, value):
         if self.renderer.live2d_manager:

@@ -11,6 +11,9 @@ class SettingsWindow(QWidget):
     click_through_toggled = Signal(bool)
     always_on_top_toggled = Signal(bool)
     look_at_mouse_toggled = Signal(bool)
+    random_look_toggled = Signal(bool)
+    random_interval_changed = Signal(float)
+    random_radius_changed = Signal(float)
     sensitivity_changed = Signal(float)
     resize_mode_toggled = Signal(bool)
     window_size_changed = Signal(int, int)
@@ -236,7 +239,7 @@ class SettingsWindow(QWidget):
         # Look at Mouse
         self.chk_look_at_mouse = QCheckBox("Look at Mouse Cursor")
         self.chk_look_at_mouse.setChecked(config['render'].get('look_at_mouse', True))
-        self.chk_look_at_mouse.toggled.connect(self.look_at_mouse_toggled.emit)
+        self.chk_look_at_mouse.toggled.connect(self.on_look_at_mouse_toggled)
         layout_tracking.addWidget(self.chk_look_at_mouse)
         
         # Sensitivity Slider
@@ -253,6 +256,45 @@ class SettingsWindow(QWidget):
         sensitivity_layout.addWidget(self.sensitivity_slider)
         sensitivity_layout.addWidget(self.sensitivity_label)
         layout_tracking.addLayout(sensitivity_layout)
+
+        # Random Look (Only enabled if Look at Mouse is OFF)
+        self.chk_random_look = QCheckBox("Randomly Look Around")
+        self.chk_random_look.setChecked(config['render'].get('random_look', False))
+        # self.chk_random_look.setEnabled(not self.chk_look_at_mouse.isChecked()) # Removed to allow mutual toggle
+        self.chk_random_look.toggled.connect(self.on_random_look_toggled)
+        layout_tracking.addWidget(self.chk_random_look)
+
+        # Random Interval Slider
+        interval_layout = QHBoxLayout()
+        interval_layout.addWidget(QLabel("Look Interval (s):"))
+        self.interval_slider = QSlider(Qt.Horizontal)
+        self.interval_slider.setMinimum(5)   # 0.5s
+        self.interval_slider.setMaximum(100) # 10.0s
+        initial_interval = int(config['render'].get('random_interval', 2.0) * 10)
+        self.interval_slider.setValue(initial_interval)
+        self.interval_slider.setEnabled(self.chk_random_look.isChecked())
+        self.interval_slider.valueChanged.connect(self.on_interval_change)
+        self.interval_label = QLabel(f"{initial_interval/10.0:.1f}s")
+        self.interval_label.setFixedWidth(40)
+        interval_layout.addWidget(self.interval_slider)
+        interval_layout.addWidget(self.interval_label)
+        layout_tracking.addLayout(interval_layout)
+
+        # Random Radius Slider
+        radius_layout = QHBoxLayout()
+        radius_layout.addWidget(QLabel("Look Radius:"))
+        self.radius_slider = QSlider(Qt.Horizontal)
+        self.radius_slider.setMinimum(5)   # 0.05 (5%)
+        self.radius_slider.setMaximum(100) # 1.00 (100%)
+        initial_radius = int(config['render'].get('random_radius', 0.2) * 100)
+        self.radius_slider.setValue(initial_radius)
+        self.radius_slider.setEnabled(self.chk_random_look.isChecked())
+        self.radius_slider.valueChanged.connect(self.on_radius_change)
+        self.radius_label = QLabel(f"{initial_radius}%")
+        self.radius_label.setFixedWidth(40)
+        radius_layout.addWidget(self.radius_slider)
+        radius_layout.addWidget(self.radius_label)
+        layout_tracking.addLayout(radius_layout)
         
         layout_behavior.addWidget(group_tracking)
 
@@ -596,6 +638,30 @@ class SettingsWindow(QWidget):
         action_layout.addWidget(btn_quit)
         
         main_layout.addLayout(action_layout)
+
+    def on_look_at_mouse_toggled(self, checked):
+        self.look_at_mouse_toggled.emit(checked)
+        if checked:
+            self.chk_random_look.setChecked(False)
+
+    def on_random_look_toggled(self, checked):
+        self.random_look_toggled.emit(checked)
+        self.interval_slider.setEnabled(checked)
+        self.radius_slider.setEnabled(checked)
+        if checked:
+            self.chk_look_at_mouse.setChecked(False)
+
+    def on_interval_change(self, value):
+        float_val = value / 10.0
+        self.interval_label.setText(f"{float_val:.1f}s")
+        self.config['render']['random_interval'] = float_val
+        self.random_interval_changed.emit(float_val)
+
+    def on_radius_change(self, value):
+        float_val = value / 100.0
+        self.radius_label.setText(f"{value}%")
+        self.config['render']['random_radius'] = float_val
+        self.random_radius_changed.emit(float_val)
 
     def on_tts_enabled_toggled(self, checked):
         self.config.setdefault('typecast', {})['enabled'] = checked

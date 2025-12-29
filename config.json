@@ -14,7 +14,10 @@
         "offset_x": 0.0,
         "offset_y": 0.0,
         "sensitivity": 0.35,
-        "look_at_mouse": true
+        "look_at_mouse": true,
+        "random_look": false,
+        "random_interval": 2.0,
+        "random_radius": 0.2
     },
     "chat": {
         "font_size": 16,

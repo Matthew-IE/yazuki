@@ -1,6 +1,7 @@
 import os
 import time
 import math
+import random
 from OpenGL.GL import ( # type: ignore
     glPushMatrix, glLoadIdentity, glRotatef, glBegin, glColor4f, 
     glVertex2f, glEnd, glPopMatrix, GL_QUADS, glScalef
@@ -42,8 +43,19 @@ class Live2DManager:
         self.offset_x = config['render'].get('offset_x', 0.0)
         self.offset_y = config['render'].get('offset_y', 0.0)
         self.look_at_mouse = config['render'].get('look_at_mouse', True)
+        self.random_look = config['render'].get('random_look', False)
+        self.random_interval_base = config['render'].get('random_interval', 2.0)
+        self.random_radius = config['render'].get('random_radius', 0.2)
         self.sensitivity = config['render'].get('sensitivity', 0.35)
         self.lip_sync_value = 0.0
+        
+        # Random look state
+        self.last_random_look_time = time.time()
+        self.next_random_look_interval = self.random_interval_base
+        self.target_random_x = self.width / 2
+        self.target_random_y = self.height / 2
+        self.current_random_x = self.width / 2
+        self.current_random_y = self.height / 2
         
     def set_lip_sync(self, value):
         self.lip_sync_value = value
@@ -136,6 +148,36 @@ class Live2DManager:
                 
                 # Use Drag to simulate looking
                 self.model.Drag(target_x, target_y)
+            elif self.random_look:
+                # Random looking behavior
+                current_time = time.time()
+                if current_time - self.last_random_look_time > self.next_random_look_interval:
+                    # Pick new target
+                    self.last_random_look_time = current_time
+                    # Vary interval slightly around the base setting (e.g. +/- 50%)
+                    min_interval = max(0.5, self.random_interval_base * 0.5)
+                    max_interval = self.random_interval_base * 1.5
+                    self.next_random_look_interval = random.uniform(min_interval, max_interval)
+                    
+                    # Random point closer to center for subtler movement
+                    center_x = self.width / 2
+                    center_y = self.height / 2
+                    
+                    # Restrict to a smaller box around center based on random_radius
+                    # random_radius is 0.0 to 1.0 (percentage of window size)
+                    range_x = self.width * self.random_radius * 0.5
+                    range_y = self.height * self.random_radius * 0.5
+                    
+                    self.target_random_x = random.uniform(center_x - range_x, center_x + range_x)
+                    self.target_random_y = random.uniform(center_y - range_y, center_y + range_y)
+                
+                # Smoothly interpolate current look position towards target
+                # Lower lerp speed for smoother, slower movement
+                lerp_speed = 0.02
+                self.current_random_x += (self.target_random_x - self.current_random_x) * lerp_speed
+                self.current_random_y += (self.target_random_y - self.current_random_y) * lerp_speed
+                
+                self.model.Drag(self.current_random_x, self.current_random_y)
             else:
                 # Look at center (straight ahead)
                 self.model.Drag(self.width / 2, self.height / 2)

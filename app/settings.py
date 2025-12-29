@@ -152,6 +152,27 @@ class SettingsWindow(QWidget):
         tab_appearance = QWidget()
         layout_appearance = QVBoxLayout(tab_appearance)
         
+        # Model Selection
+        group_model = QGroupBox("Live2D Model")
+        layout_model = QVBoxLayout(group_model)
+        
+        self.txt_model_path = QLineEdit()
+        self.txt_model_path.setReadOnly(True)
+        self.txt_model_path.setText(config.get('model_folder', 'resources/model/yazuki'))
+        layout_model.addWidget(self.txt_model_path)
+        
+        model_btn_layout = QHBoxLayout()
+        btn_browse_model = QPushButton("Browse Folder...")
+        btn_browse_model.clicked.connect(self.browse_model_folder)
+        model_btn_layout.addWidget(btn_browse_model)
+        
+        btn_reset_model = QPushButton("Use Yazuki Model")
+        btn_reset_model.clicked.connect(self.reset_model_to_default)
+        model_btn_layout.addWidget(btn_reset_model)
+        
+        layout_model.addLayout(model_btn_layout)
+        layout_appearance.addWidget(group_model)
+
         # Scale
         group_scale = QGroupBox("Model Scale & Position")
         layout_scale = QVBoxLayout(group_scale)
@@ -861,6 +882,32 @@ class SettingsWindow(QWidget):
         
         self.group_typecast_config.setVisible(is_typecast)
         self.group_sovits_config.setVisible(is_sovits)
+
+    def browse_model_folder(self):
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Live2D Model Folder")
+        if folder_path:
+            # Try to make relative path if inside current directory
+            try:
+                rel_path = os.path.relpath(folder_path, os.getcwd())
+                if not rel_path.startswith(".."):
+                    folder_path = rel_path
+            except ValueError:
+                pass # Different drive or error
+            
+            # Normalize separators to forward slash
+            folder_path = folder_path.replace("\\", "/")
+
+            # Update config
+            self.config['model_folder'] = folder_path
+            self.txt_model_path.setText(folder_path)
+            # Trigger reload
+            self.reload_requested.emit()
+
+    def reset_model_to_default(self):
+        default_path = "resources/model/yazuki"
+        self.config['model_folder'] = default_path
+        self.txt_model_path.setText(default_path)
+        self.reload_requested.emit()
 
     def pick_bg_color(self):
         color = QColorDialog.getColor(QColor(self.bg_color), self, "Select Background Color")

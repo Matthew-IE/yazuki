@@ -74,6 +74,9 @@ class Live2DManager:
         if not self.has_live2d:
             return
 
+        # Refresh model path from config
+        self.model_path = self.config.get('model_folder', 'resources/model')
+
         # Find the .model3.json file
         json_file = None
         if os.path.isdir(self.model_path):

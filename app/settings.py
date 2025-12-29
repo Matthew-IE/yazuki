@@ -839,16 +839,28 @@ class SettingsWindow(QWidget):
         self.system_prompt_changed.emit(text)
 
     def update_ai_ui_state(self, enabled):
-        self.combo_provider.setEnabled(enabled)
+        # Always enable configuration groups so they can be edited
+        self.combo_provider.setEnabled(True)
         
         provider = self.combo_provider.currentData()
         is_openai = (provider == 'openai')
         is_ollama = (provider == 'ollama')
         
-        self.group_ai_config.setVisible(enabled and is_openai)
-        self.group_ollama_config.setVisible(enabled and is_ollama)
-        self.group_memory.setEnabled(enabled)
-        self.group_personality.setEnabled(enabled)
+        self.group_ai_config.setVisible(is_openai)
+        self.group_ollama_config.setVisible(is_ollama)
+        self.group_memory.setEnabled(True)
+        self.group_personality.setEnabled(True)
+
+    def update_tts_ui_state(self, enabled):
+        # Always enable configuration groups so they can be edited
+        self.combo_tts_provider.setEnabled(True)
+        
+        provider = self.combo_tts_provider.currentData()
+        is_typecast = (provider == 'typecast')
+        is_sovits = (provider == 'gpt_sovits')
+        
+        self.group_typecast_config.setVisible(is_typecast)
+        self.group_sovits_config.setVisible(is_sovits)
 
     def pick_bg_color(self):
         color = QColorDialog.getColor(QColor(self.bg_color), self, "Select Background Color")

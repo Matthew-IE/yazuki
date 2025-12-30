@@ -14,6 +14,15 @@ class GPTSovitsClient(TTSProvider):
         self.prompt_text = config.get('gpt_sovits', {}).get('prompt_text', '')
         self.prompt_lang = config.get('gpt_sovits', {}).get('prompt_lang', 'English')
         self.text_lang = config.get('gpt_sovits', {}).get('text_lang', 'English')
+        
+        # Advanced Parameters
+        self.top_k = config.get('gpt_sovits', {}).get('top_k', 5)
+        self.top_p = config.get('gpt_sovits', {}).get('top_p', 1.0)
+        self.temperature = config.get('gpt_sovits', {}).get('temperature', 1.0)
+        self.speed = config.get('gpt_sovits', {}).get('speed', 1.0)
+        self.text_split_method = config.get('gpt_sovits', {}).get('text_split_method', "Slice once every 4 sentences")
+        self.repetition_penalty = config.get('gpt_sovits', {}).get('repetition_penalty', 1.35)
+        
         self.client = None
 
     def _get_client(self):
@@ -50,19 +59,19 @@ class GPTSovitsClient(TTSProvider):
                     aux_ref_audio_paths=[],
                     prompt_text=self.prompt_text,
                     prompt_lang=self.prompt_lang,
-                    top_k=5,
-                    top_p=1,
-                    temperature=1,
-                    text_split_method="Slice once every 4 sentences",
+                    top_k=self.top_k,
+                    top_p=self.top_p,
+                    temperature=self.temperature,
+                    text_split_method=self.text_split_method,
                     batch_size=20,
-                    speed_factor=1,
+                    speed_factor=self.speed,
                     ref_text_free=False,
                     split_bucket=True,
                     fragment_interval=0.3,
                     seed=-1,
                     keep_random=True,
                     parallel_infer=True,
-                    repetition_penalty=1.35,
+                    repetition_penalty=self.repetition_penalty,
                     api_name="/inference"
                 )
                 # Result is (filepath, seed)
@@ -75,12 +84,12 @@ class GPTSovitsClient(TTSProvider):
                     prompt_language=self.prompt_lang,
                     text=text,
                     text_language=self.text_lang,
-                    how_to_cut="Slice by English punct",
-                    top_k=15,
-                    top_p=0.8,
-                    temperature=1,
+                    how_to_cut=self.text_split_method,
+                    top_k=self.top_k,
+                    top_p=self.top_p,
+                    temperature=self.temperature,
                     ref_free=False,
-                    speed=1,
+                    speed=self.speed,
                     if_freeze=False,
                     inp_refs=None,
                     sample_steps="20",

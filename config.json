@@ -53,6 +53,12 @@
         "ref_audio_path": "",
         "prompt_text": "",
         "prompt_lang": "English",
-        "text_lang": "English"
+        "text_lang": "English",
+        "top_k": 5,
+        "top_p": 1.0,
+        "temperature": 1.0,
+        "speed": 1.0,
+        "text_split_method": "Slice once every 4 sentences",
+        "repetition_penalty": 1.35
     }
 }

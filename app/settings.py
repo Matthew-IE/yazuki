@@ -1,6 +1,6 @@
 import os
 import json
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QGroupBox, QSpinBox, QTabWidget, QFrame, QLineEdit, QComboBox, QColorDialog, QFileDialog, QPlainTextEdit) # type: ignore
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QGroupBox, QSpinBox, QDoubleSpinBox, QTabWidget, QFrame, QLineEdit, QComboBox, QColorDialog, QFileDialog, QPlainTextEdit) # type: ignore
 from PySide6.QtCore import Qt, Signal # type: ignore
 from PySide6.QtGui import QIcon, QColor, QKeySequence, QKeyEvent # type: ignore
 from app.ai_manager import AIManager
@@ -646,6 +646,75 @@ class SettingsWindow(QWidget):
         self.txt_sovits_text_lang.textChanged.connect(self.on_sovits_text_lang_changed)
         layout_group_sovits.addWidget(self.txt_sovits_text_lang)
         
+        # Advanced Parameters
+        params_layout = QHBoxLayout()
+        
+        # Top K
+        params_layout.addWidget(QLabel("Top K:"))
+        self.spin_sovits_top_k = QSpinBox()
+        self.spin_sovits_top_k.setRange(1, 100)
+        self.spin_sovits_top_k.setValue(config.get('gpt_sovits', {}).get('top_k', 5))
+        self.spin_sovits_top_k.valueChanged.connect(self.on_sovits_params_changed)
+        params_layout.addWidget(self.spin_sovits_top_k)
+        
+        # Top P
+        params_layout.addWidget(QLabel("Top P:"))
+        self.spin_sovits_top_p = QDoubleSpinBox()
+        self.spin_sovits_top_p.setRange(0.0, 1.0)
+        self.spin_sovits_top_p.setSingleStep(0.1)
+        self.spin_sovits_top_p.setValue(config.get('gpt_sovits', {}).get('top_p', 1.0))
+        self.spin_sovits_top_p.valueChanged.connect(self.on_sovits_params_changed)
+        params_layout.addWidget(self.spin_sovits_top_p)
+        
+        layout_group_sovits.addLayout(params_layout)
+        
+        params_layout2 = QHBoxLayout()
+        
+        # Temperature
+        params_layout2.addWidget(QLabel("Temp:"))
+        self.spin_sovits_temp = QDoubleSpinBox()
+        self.spin_sovits_temp.setRange(0.0, 2.0)
+        self.spin_sovits_temp.setSingleStep(0.1)
+        self.spin_sovits_temp.setValue(config.get('gpt_sovits', {}).get('temperature', 1.0))
+        self.spin_sovits_temp.valueChanged.connect(self.on_sovits_params_changed)
+        params_layout2.addWidget(self.spin_sovits_temp)
+        
+        # Speed
+        params_layout2.addWidget(QLabel("Speed:"))
+        self.spin_sovits_speed = QDoubleSpinBox()
+        self.spin_sovits_speed.setRange(0.1, 5.0)
+        self.spin_sovits_speed.setSingleStep(0.1)
+        self.spin_sovits_speed.setValue(config.get('gpt_sovits', {}).get('speed', 1.0))
+        self.spin_sovits_speed.valueChanged.connect(self.on_sovits_params_changed)
+        params_layout2.addWidget(self.spin_sovits_speed)
+        
+        layout_group_sovits.addLayout(params_layout2)
+        
+        # Split Method
+        layout_group_sovits.addWidget(QLabel("Split Method:"))
+        self.combo_sovits_split = QComboBox()
+        self.combo_sovits_split.addItems([
+            "Slice once every 4 sentences",
+            "Slice by English punct",
+            "Slice by Chinese punct",
+            "No slice"
+        ])
+        current_split = config.get('gpt_sovits', {}).get('text_split_method', "Slice once every 4 sentences")
+        self.combo_sovits_split.setCurrentText(current_split)
+        self.combo_sovits_split.currentTextChanged.connect(self.on_sovits_params_changed)
+        layout_group_sovits.addWidget(self.combo_sovits_split)
+        
+        # Repetition Penalty
+        rep_layout = QHBoxLayout()
+        rep_layout.addWidget(QLabel("Repetition Penalty:"))
+        self.spin_sovits_rep_penalty = QDoubleSpinBox()
+        self.spin_sovits_rep_penalty.setRange(0.0, 5.0)
+        self.spin_sovits_rep_penalty.setSingleStep(0.05)
+        self.spin_sovits_rep_penalty.setValue(config.get('gpt_sovits', {}).get('repetition_penalty', 1.35))
+        self.spin_sovits_rep_penalty.valueChanged.connect(self.on_sovits_params_changed)
+        rep_layout.addWidget(self.spin_sovits_rep_penalty)
+        layout_group_sovits.addLayout(rep_layout)
+        
         layout_tts.addWidget(self.group_sovits_config)
         
         self.update_tts_ui_state(self.chk_tts_enabled.isChecked())
@@ -741,6 +810,16 @@ class SettingsWindow(QWidget):
 
     def on_sovits_text_lang_changed(self, text):
         self.config.setdefault('gpt_sovits', {})['text_lang'] = text
+        self.tts_settings_changed.emit()
+
+    def on_sovits_params_changed(self):
+        sovits_config = self.config.setdefault('gpt_sovits', {})
+        sovits_config['top_k'] = self.spin_sovits_top_k.value()
+        sovits_config['top_p'] = self.spin_sovits_top_p.value()
+        sovits_config['temperature'] = self.spin_sovits_temp.value()
+        sovits_config['speed'] = self.spin_sovits_speed.value()
+        sovits_config['text_split_method'] = self.combo_sovits_split.currentText()
+        sovits_config['repetition_penalty'] = self.spin_sovits_rep_penalty.value()
         self.tts_settings_changed.emit()
 
     def update_tts_ui_state(self, enabled):

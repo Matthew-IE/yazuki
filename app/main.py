@@ -12,7 +12,7 @@ def load_config():
     if not os.path.exists(config_path):
         print("Config not found, using defaults.")
         return {
-            "model_folder": "resources/model",
+            "model_folder": "resources/model/live2d/yazuki",
             "window": {"width": 800, "height": 1000, "x": 100, "y": 100, "always_on_top": True, "click_through": False},
             "render": {"scale": 1.0, "fps": 60}
         }

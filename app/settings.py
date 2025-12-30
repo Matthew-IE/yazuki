@@ -162,7 +162,7 @@ class SettingsWindow(QWidget):
         
         self.txt_model_path = QLineEdit()
         self.txt_model_path.setReadOnly(True)
-        self.txt_model_path.setText(config.get('model_folder', 'resources/model/yazuki'))
+        self.txt_model_path.setText(config.get('model_folder', 'resources/model/live2d/yazuki'))
         layout_model.addWidget(self.txt_model_path)
         
         model_btn_layout = QHBoxLayout()
@@ -1065,7 +1065,7 @@ class SettingsWindow(QWidget):
             self.reload_requested.emit()
 
     def reset_model_to_default(self):
-        default_path = "resources/model/yazuki"
+        default_path = "resources/model/live2d/yazuki"
         self.config['model_folder'] = default_path
         self.txt_model_path.setText(default_path)
         self.reload_requested.emit()

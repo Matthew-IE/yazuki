@@ -171,7 +171,7 @@ To enable voice responses, this project uses [Typecast.ai](https://typecast.ai/)
 
 ```json
 {
-    "model_folder": "resources/model/yazuki",
+    "model_folder": "resources/model/live2d/yazuki",
     "window": {
         "width": 800,
         "height": 1000,

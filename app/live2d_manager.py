@@ -33,7 +33,7 @@ class Live2DManager:
         self.config = config
         self.model = None
         self.mock_angle = 0.0
-        self.model_path = config.get('model_folder', 'resources/model')
+        self.model_path = config.get('model_folder', 'resources/model/live2d/yazuki')
         self.has_live2d = HAS_LIVE2D
         self.width = config['window']['width']
         self.height = config['window']['height']
@@ -110,7 +110,7 @@ class Live2DManager:
             return
 
         # Refresh model path from config
-        self.model_path = self.config.get('model_folder', 'resources/model')
+        self.model_path = self.config.get('model_folder', 'resources/model/live2d/yazuki')
 
         # Find the .model3.json file
         json_file = None

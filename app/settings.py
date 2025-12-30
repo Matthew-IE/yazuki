@@ -1,4 +1,5 @@
 import os
+import json
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QCheckBox, QPushButton, QGroupBox, QSpinBox, QTabWidget, QFrame, QLineEdit, QComboBox, QColorDialog, QFileDialog, QPlainTextEdit) # type: ignore
 from PySide6.QtCore import Qt, Signal # type: ignore
 from PySide6.QtGui import QIcon, QColor, QKeySequence, QKeyEvent # type: ignore
@@ -512,6 +513,11 @@ class SettingsWindow(QWidget):
         self.txt_system_prompt.textChanged.connect(self.on_system_prompt_changed)
         
         layout_personality.addWidget(self.txt_system_prompt)
+        
+        btn_load_personality = QPushButton("Load from File (.txt, .json)")
+        btn_load_personality.clicked.connect(self.load_personality_from_file)
+        layout_personality.addWidget(btn_load_personality)
+        
         layout_ai.addWidget(self.group_personality)
         
         # Apply initial state
@@ -929,6 +935,42 @@ class SettingsWindow(QWidget):
     def on_ollama_model_changed(self, text):
         self.config.setdefault('ai', {})['ollama_model'] = text
         self.ai_settings_changed.emit()
+
+    def load_personality_from_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Load Personality", "", "Text/JSON Files (*.txt *.json);;All Files (*.*)")
+        if file_path:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    if file_path.lower().endswith('.json'):
+                        data = json.load(f)
+                        # Try to find common keys
+                        if isinstance(data, dict):
+                            # Check for TavernAI/SillyTavern style cards
+                            if 'data' in data and 'description' in data['data']:
+                                # V2 card
+                                prompt = data['data']['description']
+                                if 'scenario' in data['data']:
+                                    prompt += "\n\nScenario: " + data['data']['scenario']
+                                if 'first_mes' in data['data']:
+                                    prompt += "\n\nFirst Message: " + data['data']['first_mes']
+                                self.txt_system_prompt.setPlainText(prompt)
+                                return
+                            
+                            # Check for simple keys
+                            for key in ['system_prompt', 'personality', 'description', 'char_persona', 'prompt']:
+                                if key in data:
+                                    self.txt_system_prompt.setPlainText(str(data[key]))
+                                    return
+                            
+                            # If no known keys, dump the whole thing
+                            self.txt_system_prompt.setPlainText(json.dumps(data, indent=2))
+                        else:
+                            self.txt_system_prompt.setPlainText(str(data))
+                    else:
+                        # Text file
+                        self.txt_system_prompt.setPlainText(f.read())
+            except Exception as e:
+                print(f"Error loading personality file: {e}")
 
     def on_system_prompt_changed(self):
         text = self.txt_system_prompt.toPlainText()

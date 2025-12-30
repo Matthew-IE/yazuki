@@ -439,6 +439,7 @@ class SettingsWindow(QWidget):
         self.combo_provider = QComboBox()
         self.combo_provider.addItem("OpenAI", "openai")
         self.combo_provider.addItem("Ollama", "ollama")
+        self.combo_provider.addItem("OpenRouter", "openrouter")
         
         current_provider = config.get('ai', {}).get('provider', 'openai')
         index = self.combo_provider.findData(current_provider)
@@ -485,6 +486,25 @@ class SettingsWindow(QWidget):
         layout_group_ollama.addWidget(self.txt_ollama_model)
         
         layout_ai.addWidget(self.group_ollama_config)
+
+        # OpenRouter Config
+        self.group_openrouter_config = QGroupBox("OpenRouter Configuration")
+        layout_group_openrouter = QVBoxLayout(self.group_openrouter_config)
+        
+        layout_group_openrouter.addWidget(QLabel("API Key:"))
+        self.txt_openrouter_api_key = QLineEdit()
+        self.txt_openrouter_api_key.setEchoMode(QLineEdit.Password)
+        self.txt_openrouter_api_key.setText(config.get('ai', {}).get('openrouter_api_key', ''))
+        self.txt_openrouter_api_key.textChanged.connect(self.on_openrouter_api_key_changed)
+        layout_group_openrouter.addWidget(self.txt_openrouter_api_key)
+
+        layout_group_openrouter.addWidget(QLabel("Model:"))
+        self.txt_openrouter_model = QLineEdit()
+        self.txt_openrouter_model.setText(config.get('ai', {}).get('openrouter_model', 'xiaomi/mimo-v2-flash:free'))
+        self.txt_openrouter_model.textChanged.connect(self.on_openrouter_model_changed)
+        layout_group_openrouter.addWidget(self.txt_openrouter_model)
+        
+        layout_ai.addWidget(self.group_openrouter_config)
 
         # Memory Control
         self.group_memory = QGroupBox("Memory")
@@ -1020,6 +1040,14 @@ class SettingsWindow(QWidget):
         self.config.setdefault('ai', {})['system_prompt'] = text
         self.system_prompt_changed.emit(text)
 
+    def on_openrouter_api_key_changed(self, text):
+        self.config.setdefault('ai', {})['openrouter_api_key'] = text
+        self.ai_settings_changed.emit()
+
+    def on_openrouter_model_changed(self, text):
+        self.config.setdefault('ai', {})['openrouter_model'] = text
+        self.ai_settings_changed.emit()
+
     def update_ai_ui_state(self, enabled):
         # Always enable configuration groups so they can be edited
         self.combo_provider.setEnabled(True)
@@ -1027,9 +1055,11 @@ class SettingsWindow(QWidget):
         provider = self.combo_provider.currentData()
         is_openai = (provider == 'openai')
         is_ollama = (provider == 'ollama')
+        is_openrouter = (provider == 'openrouter')
         
         self.group_ai_config.setVisible(is_openai)
         self.group_ollama_config.setVisible(is_ollama)
+        self.group_openrouter_config.setVisible(is_openrouter)
         self.group_memory.setEnabled(True)
         self.group_personality.setEnabled(True)
 

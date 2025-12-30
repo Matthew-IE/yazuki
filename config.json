@@ -31,6 +31,8 @@
         "provider": "ollama",
         "enabled": false,
         "api_key": "",
+        "openrouter_api_key": "",
+        "openrouter_model": "xiaomi/mimo-v2-flash:free",
         "input_device": -1,
         "input_key_vk": 86,
         "input_key_name": "V",

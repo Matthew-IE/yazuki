@@ -878,9 +878,51 @@ class SettingsWindow(QWidget):
 
     def start_key_recording(self):
         self.waiting_for_key = True
-        self.btn_keybind.setText("Press any key...")
+        self.btn_keybind.setText("Press any key or mouse button...")
         self.btn_keybind.setStyleSheet("background-color: #ff9800; color: black;")
         self.grabKeyboard() # Grab keyboard input
+        self.grabMouse() # Grab mouse input
+
+    def mousePressEvent(self, event):
+        if self.waiting_for_key:
+            button = event.button()
+            vk = 0
+            name = ""
+            
+            if button == Qt.LeftButton:
+                vk = 0x01
+                name = "Left Mouse"
+            elif button == Qt.RightButton:
+                vk = 0x02
+                name = "Right Mouse"
+            elif button == Qt.MiddleButton:
+                vk = 0x04
+                name = "Middle Mouse"
+            elif button == Qt.XButton1:
+                vk = 0x05
+                name = "Mouse 4"
+            elif button == Qt.XButton2:
+                vk = 0x06
+                name = "Mouse 5"
+            
+            if vk != 0:
+                # Update Config
+                ai_config = self.config.setdefault('ai', {})
+                ai_config['input_key_vk'] = vk
+                ai_config['input_key_name'] = name
+                
+                # Update UI
+                self.btn_keybind.setText(name)
+                self.btn_keybind.setStyleSheet("") # Reset style
+                
+                self.waiting_for_key = False
+                self.releaseKeyboard()
+                self.releaseMouse()
+                
+                self.input_key_changed.emit(vk)
+                return
+        
+        super().mousePressEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent):
         if self.waiting_for_key:
@@ -904,6 +946,7 @@ class SettingsWindow(QWidget):
             
             self.waiting_for_key = False
             self.releaseKeyboard()
+            self.releaseMouse()
             
             self.input_key_changed.emit(native_key)
         else:

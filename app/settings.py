@@ -31,6 +31,8 @@ class SettingsWindow(QWidget):
     mouth_sensitivity_changed = Signal(float)
     system_prompt_changed = Signal(str)
     emotions_enabled_toggled = Signal(bool)
+    chat_edit_mode_toggled = Signal(bool)
+    chat_tab_active_changed = Signal(bool)
 
     def __init__(self, config):
         super().__init__()
@@ -151,6 +153,7 @@ class SettingsWindow(QWidget):
         
         # Tabs
         self.tabs = QTabWidget()
+        self.tabs.currentChanged.connect(self.on_tab_changed)
         main_layout.addWidget(self.tabs)
         
         # --- Tab 1: Appearance ---
@@ -957,6 +960,12 @@ class SettingsWindow(QWidget):
         pos_group = QGroupBox("Position Offset")
         pos_layout = QVBoxLayout()
         
+        # Edit Mode Toggle
+        self.btn_edit_pos = QPushButton("Edit Position (Drag & Drop)")
+        self.btn_edit_pos.setCheckable(True)
+        self.btn_edit_pos.toggled.connect(self.on_edit_pos_toggled)
+        pos_layout.addWidget(self.btn_edit_pos)
+
         x_layout = QHBoxLayout()
         x_layout.addWidget(QLabel("X:"))
         self.offset_x_spin = QSpinBox()
@@ -977,6 +986,34 @@ class SettingsWindow(QWidget):
         
         pos_group.setLayout(pos_layout)
         layout.addWidget(pos_group)
+
+        # Behavior
+        behavior_group = QGroupBox("Behavior")
+        behavior_layout = QVBoxLayout()
+
+        # Typewriter Effect
+        self.chk_typewriter = QCheckBox("Typewriter Effect")
+        self.chk_typewriter.setChecked(chat_config.get('typewriter_effect', True))
+        self.chk_typewriter.toggled.connect(self.emit_chat_settings)
+        behavior_layout.addWidget(self.chk_typewriter)
+
+        # Typewriter Speed
+        speed_layout = QHBoxLayout()
+        speed_layout.addWidget(QLabel("Speed (ms/char):"))
+        self.typewriter_speed_slider = QSlider(Qt.Horizontal)
+        self.typewriter_speed_slider.setRange(10, 200) # 10ms (fast) to 200ms (slow)
+        self.typewriter_speed_slider.setValue(chat_config.get('typewriter_speed', 50))
+        self.typewriter_speed_slider.valueChanged.connect(self.emit_chat_settings)
+        
+        self.lbl_speed_val = QLabel(f"{self.typewriter_speed_slider.value()} ms")
+        self.typewriter_speed_slider.valueChanged.connect(lambda v: self.lbl_speed_val.setText(f"{v} ms"))
+        
+        speed_layout.addWidget(self.typewriter_speed_slider)
+        speed_layout.addWidget(self.lbl_speed_val)
+        behavior_layout.addLayout(speed_layout)
+
+        behavior_group.setLayout(behavior_layout)
+        layout.addWidget(behavior_group)
         
         layout.addStretch()
 
@@ -1209,6 +1246,35 @@ class SettingsWindow(QWidget):
             'bg_color': self.bg_color,
             'bg_opacity': self.bg_opacity_slider.value(),
             'offset_x': self.offset_x_spin.value(),
-            'offset_y': self.offset_y_spin.value()
+            'offset_y': self.offset_y_spin.value(),
+            'typewriter_effect': self.chk_typewriter.isChecked(),
+            'typewriter_speed': self.typewriter_speed_slider.value()
         }
+        # Update config object too so it persists on save
+        self.config.setdefault('chat', {}).update(settings)
         self.chat_settings_changed.emit(settings)
+
+    def on_edit_pos_toggled(self, checked):
+        self.chat_edit_mode_toggled.emit(checked)
+        if checked:
+            self.btn_edit_pos.setText("Finish Editing")
+            self.btn_edit_pos.setStyleSheet("background-color: #4CAF50; color: white;")
+        else:
+            self.btn_edit_pos.setText("Edit Position (Drag & Drop)")
+            self.btn_edit_pos.setStyleSheet("")
+
+    def update_chat_position(self, x, y):
+        self.offset_x_spin.blockSignals(True)
+        self.offset_y_spin.blockSignals(True)
+        self.offset_x_spin.setValue(x)
+        self.offset_y_spin.setValue(y)
+        self.offset_x_spin.blockSignals(False)
+        self.offset_y_spin.blockSignals(False)
+        # Update config
+        self.config.setdefault('chat', {})['offset_x'] = x
+        self.config.setdefault('chat', {})['offset_y'] = y
+
+    def on_tab_changed(self, index):
+        # Chat tab is index 5
+        is_chat_tab = (index == 5)
+        self.chat_tab_active_changed.emit(is_chat_tab)

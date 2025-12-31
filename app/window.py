@@ -100,6 +100,9 @@ class OverlayWindow(QMainWindow):
         self.settings_window.mouth_sensitivity_changed.connect(self.set_mouth_sensitivity)
         self.settings_window.system_prompt_changed.connect(self.set_system_prompt)
         self.settings_window.emotions_enabled_toggled.connect(self.set_emotions_enabled)
+        self.settings_window.chat_edit_mode_toggled.connect(self.renderer.set_edit_mode)
+        self.settings_window.chat_tab_active_changed.connect(self.renderer.set_preview_mode)
+        self.renderer.chat_position_changed.connect(self.settings_window.update_chat_position)
 
         # System Tray Icon
         self.init_tray_icon()

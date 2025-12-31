@@ -25,7 +25,9 @@
         "bg_color": "#000000",
         "bg_opacity": 180,
         "offset_x": 0,
-        "offset_y": 0
+        "offset_y": 0,
+        "typewriter_effect": true,
+        "typewriter_speed": 50
     },
     "ai": {
         "emotions_enabled": false,

@@ -77,5 +77,14 @@
         "similarity_boost": 0.75,
         "style": 0.0,
         "use_speaker_boost": true
+    },
+    "minecraft": {
+        "enabled": false,
+        "host": "localhost",
+        "port": 25565,
+        "username": "YazukiBot",
+        "auth": "offline",
+        "version": "auto",
+        "respond_to_chat": true
     }
 }

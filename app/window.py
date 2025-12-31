@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, Q
 from PySide6.QtGui import QKeyEvent, QIcon, QAction, QPainter, QPen, QColor # type: ignore
 from app.settings import SettingsWindow
 from app.ai_manager import AIManager
+from app.minecraft_manager import MinecraftManager
 
 # Windows API constants
 GWL_EXSTYLE = -20
@@ -25,6 +26,7 @@ HOTKEY_ID_F9 = 2
 class OverlayWindow(QMainWindow):
     ai_response_received = Signal(str, str, float)
     lip_sync_updated = Signal(float)
+    mc_response_ready = Signal(str, str, float)
 
     def __init__(self, config, renderer_widget):
         super().__init__()
@@ -35,6 +37,7 @@ class OverlayWindow(QMainWindow):
         # Connect AI signal
         self.ai_response_received.connect(self.on_ai_response)
         self.lip_sync_updated.connect(self.renderer.set_lip_sync)
+        self.mc_response_ready.connect(self.handle_mc_response)
         
         # Window setup
         self.setWindowFlags(
@@ -103,6 +106,16 @@ class OverlayWindow(QMainWindow):
         self.settings_window.chat_edit_mode_toggled.connect(self.renderer.set_edit_mode)
         self.settings_window.chat_tab_active_changed.connect(self.renderer.set_preview_mode)
         self.renderer.chat_position_changed.connect(self.settings_window.update_chat_position)
+        
+        # Minecraft Manager
+        self.mc_manager = MinecraftManager(config)
+        self.mc_manager.status_changed.connect(self.on_mc_status_changed)
+        self.mc_manager.log_message.connect(self.on_mc_log)
+        self.mc_manager.chat_received.connect(self.on_mc_chat)
+        self.mc_manager.error_occurred.connect(self.on_mc_error)
+        
+        self.settings_window.minecraft_connect_requested.connect(self.mc_manager.connect_to_server)
+        self.settings_window.minecraft_disconnect_requested.connect(self.mc_manager.stop_bot)
 
         # System Tray Icon
         self.init_tray_icon()
@@ -148,6 +161,47 @@ class OverlayWindow(QMainWindow):
 
     def set_input_key(self, vk_code):
         self.input_key_vk = vk_code
+
+    def on_mc_status_changed(self, status):
+        self.settings_window.update_minecraft_status(status)
+        if status == "Connected":
+            self.renderer.set_status_text("Minecraft: Connected")
+            QTimer.singleShot(3000, lambda: self.renderer.set_status_text(""))
+
+    def on_mc_log(self, message):
+        print(f"[Minecraft Log] {message}")
+
+    def on_mc_error(self, error_message):
+        print(f"[Minecraft Error] {error_message}")
+        self.settings_window.update_minecraft_status("Error")
+        self.renderer.set_status_text(f"MC Error: {error_message}")
+
+    def handle_mc_response(self, text, emotion, duration):
+        self.on_ai_response(text, emotion, duration)
+        self.mc_manager.send_chat(text)
+
+    def on_mc_chat(self, username, message):
+        # Check if we should respond
+        if not self.config.get('minecraft', {}).get('respond_to_chat', True):
+            return
+            
+        # Ignore own messages (if not already filtered)
+        bot_username = self.config.get('minecraft', {}).get('username', 'YazukiBot')
+        if username == bot_username:
+            return
+
+        print(f"[Minecraft Chat] {username}: {message}")
+        
+        # Construct prompt context
+        user_text = f"[Minecraft] {username}: {message}"
+        
+        # Process with AI
+        # Use signal emit as callback to ensure thread safety
+        self.ai_manager.process_text_input(
+            user_text, 
+            self.mc_response_ready.emit, 
+            self.lip_sync_updated.emit
+        )
 
     def on_ai_response(self, text, emotion, duration):
         # This might be called from a thread, so we should be careful with UI updates

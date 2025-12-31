@@ -33,6 +33,9 @@ class SettingsWindow(QWidget):
     emotions_enabled_toggled = Signal(bool)
     chat_edit_mode_toggled = Signal(bool)
     chat_tab_active_changed = Signal(bool)
+    minecraft_settings_changed = Signal()
+    minecraft_connect_requested = Signal()
+    minecraft_disconnect_requested = Signal()
 
     def __init__(self, config):
         super().__init__()
@@ -49,7 +52,7 @@ class SettingsWindow(QWidget):
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
             
-        self.resize(600, 700)
+        self.resize(700, 800)
         
         # Apply Dark Theme
         self.setStyleSheet("""
@@ -812,6 +815,94 @@ class SettingsWindow(QWidget):
         layout_tts.addStretch()
         self.tabs.addTab(tab_tts, "TTS")
 
+        # --- Tab 9: Minecraft ---
+        tab_minecraft = QWidget()
+        layout_minecraft = QVBoxLayout(tab_minecraft)
+        
+        # Status Label
+        self.lbl_mc_status = QLabel("Status: Disconnected")
+        self.lbl_mc_status.setStyleSheet("font-weight: bold; color: #666;")
+        layout_minecraft.addWidget(self.lbl_mc_status)
+        
+        # Enable Minecraft Bot
+        self.chk_mc_enabled = QCheckBox("Enable Minecraft Bot")
+        self.chk_mc_enabled.setChecked(config.get('minecraft', {}).get('enabled', False))
+        self.chk_mc_enabled.toggled.connect(self.on_mc_enabled_toggled)
+        layout_minecraft.addWidget(self.chk_mc_enabled)
+        
+        # Respond to Chat
+        self.chk_mc_respond = QCheckBox("Respond to In-Game Chat")
+        self.chk_mc_respond.setChecked(config.get('minecraft', {}).get('respond_to_chat', True))
+        self.chk_mc_respond.toggled.connect(self.on_mc_respond_toggled)
+        layout_minecraft.addWidget(self.chk_mc_respond)
+
+        group_mc_server = QGroupBox("Server Connection")
+        layout_mc_server = QVBoxLayout(group_mc_server)
+        
+        # Host
+        layout_mc_server.addWidget(QLabel("Server Host:"))
+        self.txt_mc_host = QLineEdit()
+        self.txt_mc_host.setText(config.get('minecraft', {}).get('host', 'localhost'))
+        self.txt_mc_host.textChanged.connect(self.on_mc_host_changed)
+        layout_mc_server.addWidget(self.txt_mc_host)
+        
+        # Port
+        layout_mc_server.addWidget(QLabel("Server Port:"))
+        self.spin_mc_port = QSpinBox()
+        self.spin_mc_port.setRange(1, 65535)
+        self.spin_mc_port.setValue(config.get('minecraft', {}).get('port', 25565))
+        self.spin_mc_port.valueChanged.connect(self.on_mc_port_changed)
+        layout_mc_server.addWidget(self.spin_mc_port)
+        
+        # Version
+        layout_mc_server.addWidget(QLabel("Version (e.g. 1.20.4 or 'auto'):"))
+        self.txt_mc_version = QLineEdit()
+        self.txt_mc_version.setText(config.get('minecraft', {}).get('version', 'auto'))
+        self.txt_mc_version.textChanged.connect(self.on_mc_version_changed)
+        layout_mc_server.addWidget(self.txt_mc_version)
+        
+        layout_minecraft.addWidget(group_mc_server)
+        
+        group_mc_bot = QGroupBox("Bot Settings")
+        layout_mc_bot = QVBoxLayout(group_mc_bot)
+        
+        # Username
+        layout_mc_bot.addWidget(QLabel("Bot Username:"))
+        self.txt_mc_username = QLineEdit()
+        self.txt_mc_username.setText(config.get('minecraft', {}).get('username', 'YazukiBot'))
+        self.txt_mc_username.textChanged.connect(self.on_mc_username_changed)
+        layout_mc_bot.addWidget(self.txt_mc_username)
+        
+        # Auth
+        layout_mc_bot.addWidget(QLabel("Authentication:"))
+        self.combo_mc_auth = QComboBox()
+        self.combo_mc_auth.addItem("Offline (Cracked/Local)", "offline")
+        self.combo_mc_auth.addItem("Microsoft", "microsoft")
+        
+        current_auth = config.get('minecraft', {}).get('auth', 'offline')
+        index = self.combo_mc_auth.findData(current_auth)
+        if index >= 0:
+            self.combo_mc_auth.setCurrentIndex(index)
+        self.combo_mc_auth.currentIndexChanged.connect(self.on_mc_auth_changed)
+        layout_mc_bot.addWidget(self.combo_mc_auth)
+        
+        layout_minecraft.addWidget(group_mc_bot)
+        
+        # Connection Controls
+        mc_controls_layout = QHBoxLayout()
+        btn_mc_connect = QPushButton("Connect Bot")
+        btn_mc_connect.clicked.connect(self.minecraft_connect_requested.emit)
+        mc_controls_layout.addWidget(btn_mc_connect)
+        
+        btn_mc_disconnect = QPushButton("Disconnect Bot")
+        btn_mc_disconnect.clicked.connect(self.minecraft_disconnect_requested.emit)
+        mc_controls_layout.addWidget(btn_mc_disconnect)
+        
+        layout_minecraft.addLayout(mc_controls_layout)
+        
+        layout_minecraft.addStretch()
+        self.tabs.addTab(tab_minecraft, "Minecraft")
+
         # --- Bottom Actions ---
         action_layout = QHBoxLayout()
         
@@ -944,6 +1035,46 @@ class SettingsWindow(QWidget):
         self.group_typecast_config.setVisible(is_typecast)
         self.group_sovits_config.setVisible(is_sovits)
         self.group_elevenlabs_config.setVisible(is_elevenlabs)
+
+    def on_mc_enabled_toggled(self, checked):
+        self.config.setdefault('minecraft', {})['enabled'] = checked
+        self.minecraft_settings_changed.emit()
+
+    def on_mc_respond_toggled(self, checked):
+        self.config.setdefault('minecraft', {})['respond_to_chat'] = checked
+        self.minecraft_settings_changed.emit()
+
+    def on_mc_host_changed(self, text):
+        self.config.setdefault('minecraft', {})['host'] = text
+        self.minecraft_settings_changed.emit()
+
+    def on_mc_port_changed(self, value):
+        self.config.setdefault('minecraft', {})['port'] = value
+        self.minecraft_settings_changed.emit()
+
+    def on_mc_version_changed(self, text):
+        self.config.setdefault('minecraft', {})['version'] = text
+        self.minecraft_settings_changed.emit()
+
+    def on_mc_username_changed(self, text):
+        self.config.setdefault('minecraft', {})['username'] = text
+        self.minecraft_settings_changed.emit()
+
+    def on_mc_auth_changed(self, index):
+        auth = self.combo_mc_auth.currentData()
+        self.config.setdefault('minecraft', {})['auth'] = auth
+        self.minecraft_settings_changed.emit()
+
+    def update_minecraft_status(self, status):
+        self.lbl_mc_status.setText(f"Status: {status}")
+        if status == "Connected":
+            self.lbl_mc_status.setStyleSheet("font-weight: bold; color: green;")
+        elif status == "Disconnected":
+            self.lbl_mc_status.setStyleSheet("font-weight: bold; color: #666;")
+        elif status == "Error":
+            self.lbl_mc_status.setStyleSheet("font-weight: bold; color: red;")
+        else:
+            self.lbl_mc_status.setStyleSheet("font-weight: bold; color: orange;")
 
     def on_scale_change(self, value):
         scale = value / 100.0

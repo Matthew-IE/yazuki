@@ -177,6 +177,16 @@ class AIManager:
                 callback("...", "Neutral", 2.0)
                 return
 
+            self.process_text_input(user_text, callback, lip_sync_callback)
+        except Exception as e:
+            print(f"Audio Processing Error: {e}")
+            callback(f"Error: {str(e)}", "Neutral", 5.0)
+
+    def process_text_input(self, user_text, callback, lip_sync_callback=None):
+        threading.Thread(target=self._process_text_worker, args=(user_text, callback, lip_sync_callback)).start()
+
+    def _process_text_worker(self, user_text, callback, lip_sync_callback=None):
+        try:
             print("Sending to AI...")
             
             messages_to_send = []

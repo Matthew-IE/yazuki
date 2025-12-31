@@ -42,6 +42,9 @@ class RendererWidget(QOpenGLWidget):
                 if families:
                     self.font_family = families[0]
                     print(f"Loaded font: {self.font_family}")
+        
+        self.chat_font = QFont(self.font_family, self.chat_font_size)
+        self.status_font = QFont("Segoe UI", 12, QFont.Bold)
 
     def update_chat_settings(self, settings):
         self.chat_font_size = settings.get('font_size', 16)
@@ -51,6 +54,7 @@ class RendererWidget(QOpenGLWidget):
         self.chat_bg_color = bg_color
         self.chat_offset_x = settings.get('offset_x', 0)
         self.chat_offset_y = settings.get('offset_y', 0)
+        self.chat_font = QFont(self.font_family, self.chat_font_size)
         self.update()
 
     def set_chat_text(self, text, duration=10.0):
@@ -120,7 +124,7 @@ class RendererWidget(QOpenGLWidget):
         
         # Draw Chat Text
         if self.chat_text:
-            painter.setFont(QFont(self.font_family, self.chat_font_size))
+            painter.setFont(self.chat_font)
             
             # Calculate text rect
             rect = self.rect().adjusted(20 + self.chat_offset_x, 20 + self.chat_offset_y, -20 + self.chat_offset_x, -20 + self.chat_offset_y)
@@ -141,7 +145,7 @@ class RendererWidget(QOpenGLWidget):
 
         # Draw Status Text (Listening/Thinking)
         if self.status_text:
-            painter.setFont(QFont("Segoe UI", 12, QFont.Bold))
+            painter.setFont(self.status_font)
             painter.setPen(QColor(255, 255, 0)) # Yellow
             painter.drawText(self.rect().adjusted(0, 0, -10, -10), Qt.AlignBottom | Qt.AlignRight, self.status_text)
 

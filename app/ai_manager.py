@@ -16,7 +16,7 @@ class AIManager:
         self.config = config
         self.recording = False
         self.audio_data = []
-        self.samplerate = 44100
+        self.samplerate = 16000 # Optimized for Whisper
         self.client = None
         self.provider = None
         self.tts_provider = None
@@ -132,12 +132,8 @@ class AIManager:
 
     def _process_audio(self, callback, lip_sync_callback=None):
         try:
-            # Save to temp file
-            recording = np.concatenate(self.audio_data, axis=0)
-            filename = "temp_input.wav"
-            # Normalize
-            recording = np.int16(recording * 32767)
-            write(filename, self.samplerate, recording)
+            # Flatten audio data
+            audio_np = np.concatenate(self.audio_data, axis=0).flatten()
             
             print("Transcribing...")
             user_text = ""
@@ -145,11 +141,17 @@ class AIManager:
             # Transcribe
             if self.client:
                 # Use OpenAI Whisper if available
-                with open(filename, "rb") as audio_file:
-                    transcript = self.client.audio.transcriptions.create(
-                        model="whisper-1", 
-                        file=audio_file
-                    )
+                # Convert to WAV in memory
+                audio_int16 = np.int16(np.clip(audio_np, -1, 1) * 32767)
+                buffer = io.BytesIO()
+                buffer.name = "audio.wav"
+                write(buffer, self.samplerate, audio_int16)
+                buffer.seek(0)
+                
+                transcript = self.client.audio.transcriptions.create(
+                    model="whisper-1", 
+                    file=buffer
+                )
                 user_text = transcript.text
             else:
                 # Fallback to local Whisper (openai-whisper)
@@ -159,7 +161,8 @@ class AIManager:
                         print("Loading local Whisper model (base.en)...")
                         self.local_whisper_model = whisper.load_model("base.en")
                     
-                    result = self.local_whisper_model.transcribe(filename)
+                    # Pass numpy array directly (float32, 16k)
+                    result = self.local_whisper_model.transcribe(audio_np)
                     user_text = result["text"]
                 except ImportError:
                     callback("Error: OpenAI Key missing and 'openai-whisper' not installed. Run: pip install openai-whisper", "Neutral", 10.0)
@@ -274,10 +277,6 @@ class AIManager:
             # Fallback: If no audio was played (TTS disabled or failed), show text now
             if not audio_played:
                 callback(reply, emotion, 5.0)
-            
-            # Cleanup
-            if os.path.exists(filename):
-                os.remove(filename)
                 
         except Exception as e:
             print(f"AI Error: {e}")

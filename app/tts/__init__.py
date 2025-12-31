@@ -3,16 +3,15 @@ from .gpt_sovits_client import GPTSovitsClient
 
 def get_tts_provider(config):
     # Check if TTS is enabled globally
-    if not config.get('typecast', {}).get('enabled', False):
+    # Check 'tts' -> 'enabled' first, fallback to 'typecast' -> 'enabled' for legacy
+    tts_enabled = config.get('tts', {}).get('enabled', False) or config.get('typecast', {}).get('enabled', False)
+    
+    if not tts_enabled:
         return None
 
-    provider_type = config.get('tts', {}).get('provider', 'typecast')
+    provider_type = config.get('tts', {}).get('provider', 'gpt_sovits')
     
-    # Backward compatibility check: if 'typecast' key exists and enabled is true, default to typecast
-    if config.get('typecast', {}).get('enabled', False) and 'provider' not in config.get('tts', {}):
+    if provider_type == 'typecast':
         return TypecastClient(config)
-        
-    if provider_type == 'gpt_sovits':
-        return GPTSovitsClient(config)
     else:
-        return TypecastClient(config)
+        return GPTSovitsClient(config)

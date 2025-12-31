@@ -579,7 +579,7 @@ class SettingsWindow(QWidget):
         
         # Enable TTS
         self.chk_tts_enabled = QCheckBox("Enable TTS")
-        self.chk_tts_enabled.setChecked(config.get('typecast', {}).get('enabled', False))
+        self.chk_tts_enabled.setChecked(config.get('tts', {}).get('enabled', False))
         self.chk_tts_enabled.toggled.connect(self.on_tts_enabled_toggled)
         layout_tts.addWidget(self.chk_tts_enabled)
 
@@ -787,7 +787,7 @@ class SettingsWindow(QWidget):
         self.random_radius_changed.emit(float_val)
 
     def on_tts_enabled_toggled(self, checked):
-        self.config.setdefault('typecast', {})['enabled'] = checked
+        self.config.setdefault('tts', {})['enabled'] = checked
         self.update_tts_ui_state(checked)
         self.tts_settings_changed.emit()
 

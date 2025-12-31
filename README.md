@@ -13,31 +13,31 @@ This project emphasizes **privacy and local control**, offering full support for
 
 ##  Key Features
 
-*   ** Live2D Rendering**: Renders Cubism 3.0+ models with transparency.
-*   ** AI Intelligence**:
+*   **Live2D Rendering**: Renders Cubism 3.0+ models with transparency.
+*   **AI Intelligence**:
     *   **Ollama (Local)**: Run models like Llama 3, Mistral, or Gemma locally.
     *   **OpenAI (Cloud)**: Use GPT-4o or GPT-3.5 Turbo.
     *   **OpenRouter (Cloud)**: Access a wide range of models (Claude, Gemini, etc.) via OpenRouter.
-*   ** Voice Interaction**:
+*   **Voice Interaction**:
     *   **Speech-to-Text**: Local `openai-whisper` (free/private) or OpenAI Whisper API.
     *   **Text-to-Speech**: 
         *   **GPT-SoVITS** (Local, high quality custom voices).
         *   **ElevenLabs** (Cloud, industry-leading realism).
         *   **Typecast.ai** (Cloud, diverse character voices).
     *   **Lip Sync**: Real-time mouth movement synchronized with the character's voice (supports both local and cloud audio).
-*   ** Minecraft Integration**:
+*   **Minecraft Integration**:
     *   **Bot Companion**: Yazuki can join your Minecraft server as a bot using Mineflayer.
     *   **Chat Bridge**: She reads in-game chat and responds intelligently.
     *   **Status Monitoring**: See connection status directly in the settings.
     *   **Bear in mind that the current implementation of Mineflayer is just bare bones.**
-*   ** Interactive**:
+*   **Interactive**:
     *   **Eye Tracking**: The character follows your mouse cursor.
     *   **Click-Through**: Toggle "ghost mode" to click through the character to windows behind her.
-*   ** Modern Settings UI**:
+*   **Modern Settings UI**:
     *   Configure everything in real-time without restarting.
     *   Adjust model scale, position, and sensitivity.
     *   Customize chat bubble appearance (font, colors, opacity).
-*   ** Push-to-Talk**: Hold a key (default 'V') to speak to your companion.
+*   **Push-to-Talk**: Hold a key (default 'V') to speak to your companion.
 
 ---
 

@@ -30,6 +30,7 @@ class SettingsWindow(QWidget):
     tts_settings_changed = Signal()
     mouth_sensitivity_changed = Signal(float)
     system_prompt_changed = Signal(str)
+    emotions_enabled_toggled = Signal(bool)
 
     def __init__(self, config):
         super().__init__()
@@ -539,6 +540,17 @@ class SettingsWindow(QWidget):
         layout_personality.addWidget(btn_load_personality)
         
         layout_ai.addWidget(self.group_personality)
+
+        # Emotions
+        self.group_emotions = QGroupBox("Emotions")
+        layout_emotions = QVBoxLayout(self.group_emotions)
+        
+        self.chk_emotions_enabled = QCheckBox("Enable Emotions")
+        self.chk_emotions_enabled.setChecked(config.get('ai', {}).get('emotions_enabled', False))
+        self.chk_emotions_enabled.toggled.connect(self.on_emotions_enabled_toggled)
+        layout_emotions.addWidget(self.chk_emotions_enabled)
+        
+        layout_ai.addWidget(self.group_emotions)
         
         # Apply initial state
         self.update_ai_ui_state(self.chk_ai_enabled.isChecked())
@@ -1118,6 +1130,10 @@ class SettingsWindow(QWidget):
         text = self.txt_system_prompt.toPlainText()
         self.config.setdefault('ai', {})['system_prompt'] = text
         self.system_prompt_changed.emit(text)
+
+    def on_emotions_enabled_toggled(self, checked):
+        self.config.setdefault('ai', {})['emotions_enabled'] = checked
+        self.emotions_enabled_toggled.emit(checked)
 
     def on_openrouter_api_key_changed(self, text):
         self.config.setdefault('ai', {})['openrouter_api_key'] = text

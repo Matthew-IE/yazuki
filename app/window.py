@@ -99,6 +99,7 @@ class OverlayWindow(QMainWindow):
         self.settings_window.tts_settings_changed.connect(self.update_ai_settings)
         self.settings_window.mouth_sensitivity_changed.connect(self.set_mouth_sensitivity)
         self.settings_window.system_prompt_changed.connect(self.set_system_prompt)
+        self.settings_window.emotions_enabled_toggled.connect(self.set_emotions_enabled)
 
         # System Tray Icon
         self.init_tray_icon()
@@ -335,6 +336,10 @@ class OverlayWindow(QMainWindow):
     def set_system_prompt(self, prompt):
         if self.ai_manager:
             self.ai_manager.set_system_prompt(prompt)
+
+    def set_emotions_enabled(self, enabled):
+        if self.ai_manager:
+            self.ai_manager.set_emotions_enabled(enabled)
 
     def save_settings(self):
         try:

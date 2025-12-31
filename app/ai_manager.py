@@ -21,31 +21,44 @@ class AIManager:
         self.provider = None
         self.tts_provider = None
         self.history = []
-        self.system_prompt = config.get('ai', {}).get('system_prompt', "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting. You can express emotions by starting your response with [Joy], [Anger], [Surprise], or [Neutral].")
         self.memory_enabled = config.get('ai', {}).get('memory_enabled', True)
         self.mouth_sensitivity = config.get('render', {}).get('mouth_sensitivity', 5.0)
         self.local_whisper_model = None
         self.clear_memory()
         self.setup_client()
         
+    def get_effective_system_prompt(self):
+        base_prompt = self.config.get('ai', {}).get('system_prompt', "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting.")
+        if self.config.get('ai', {}).get('emotions_enabled', False):
+            return base_prompt + " You can express emotions by starting your response with [Joy], [Anger], [Surprise], or [Neutral]."
+        return base_prompt
+
     def set_mouth_sensitivity(self, value):
         self.mouth_sensitivity = value
 
     def set_system_prompt(self, prompt):
-        self.system_prompt = prompt
-        # Update current history if it exists and starts with system prompt
+        self.config.setdefault('ai', {})['system_prompt'] = prompt
+        self._update_history_prompt()
+        print(f"System prompt updated.")
+
+    def set_emotions_enabled(self, enabled):
+        self.config.setdefault('ai', {})['emotions_enabled'] = enabled
+        self._update_history_prompt()
+        print(f"Emotions enabled: {enabled}")
+
+    def _update_history_prompt(self):
+        prompt = self.get_effective_system_prompt()
         if self.history and self.history[0].get("role") == "system":
             self.history[0]["content"] = prompt
         else:
             self.clear_memory()
-        print(f"System prompt updated.")
 
     def set_memory_enabled(self, enabled):
         self.memory_enabled = enabled
         print(f"Memory enabled: {enabled}")
 
     def clear_memory(self):
-        self.history = [{"role": "system", "content": self.system_prompt}]
+        self.history = [{"role": "system", "content": self.get_effective_system_prompt()}]
         print("Memory cleared.")
 
     def setup_client(self):
@@ -172,7 +185,7 @@ class AIManager:
             else:
                 # Use fresh context
                 messages_to_send = [
-                    {"role": "system", "content": self.system_prompt},
+                    {"role": "system", "content": self.get_effective_system_prompt()},
                     {"role": "user", "content": user_text}
                 ]
             
@@ -181,15 +194,25 @@ class AIManager:
             
             # Extract Emotion
             emotion = "Neutral"
-            emotion_match = re.search(r'\[([a-zA-Z0-9_]+)\]', raw_reply)
             reply = raw_reply
+            history_content = raw_reply
+            
+            emotion_match = re.search(r'\[([a-zA-Z0-9_]+)\]', raw_reply)
             if emotion_match:
-                emotion = emotion_match.group(1)
+                # Always strip the tag from the spoken/displayed text
                 reply = re.sub(r'\[.*?\]', '', raw_reply).strip()
+                
+                if self.config.get('ai', {}).get('emotions_enabled', False):
+                    emotion = emotion_match.group(1)
+                    history_content = raw_reply
+                else:
+                    # If emotions are disabled, force Neutral and strip from history
+                    emotion = "Neutral"
+                    history_content = reply
             
             if self.memory_enabled:
                 # Append AI reply to history
-                self.history.append({"role": "assistant", "content": raw_reply})
+                self.history.append({"role": "assistant", "content": history_content})
             
             print(f"AI replied: {reply} (Emotion: {emotion})")
             

@@ -589,8 +589,9 @@ class SettingsWindow(QWidget):
         
         layout_tts_provider.addWidget(QLabel("Select Provider:"))
         self.combo_tts_provider = QComboBox()
-        self.combo_tts_provider.addItem("Typecast.ai", "typecast")
         self.combo_tts_provider.addItem("GPT-SoVITS (Local)", "gpt_sovits")
+        self.combo_tts_provider.addItem("ElevenLabs", "elevenlabs")
+        self.combo_tts_provider.addItem("Typecast.ai", "typecast")
         
         current_tts_provider = config.get('tts', {}).get('provider', 'typecast')
         index = self.combo_tts_provider.findData(current_tts_provider)
@@ -620,6 +621,73 @@ class SettingsWindow(QWidget):
         layout_group_typecast.addWidget(self.txt_tts_voice_id)
         
         layout_tts.addWidget(self.group_typecast_config)
+
+        # ElevenLabs Config
+        self.group_elevenlabs_config = QGroupBox("ElevenLabs Configuration")
+        layout_group_elevenlabs = QVBoxLayout(self.group_elevenlabs_config)
+        
+        layout_group_elevenlabs.addWidget(QLabel("API Key:"))
+        self.txt_elevenlabs_api_key = QLineEdit()
+        self.txt_elevenlabs_api_key.setEchoMode(QLineEdit.Password)
+        self.txt_elevenlabs_api_key.setText(config.get('elevenlabs', {}).get('api_key', ''))
+        self.txt_elevenlabs_api_key.textChanged.connect(self.on_elevenlabs_api_key_changed)
+        layout_group_elevenlabs.addWidget(self.txt_elevenlabs_api_key)
+        
+        layout_group_elevenlabs.addWidget(QLabel("Voice ID:"))
+        self.txt_elevenlabs_voice_id = QLineEdit()
+        self.txt_elevenlabs_voice_id.setText(config.get('elevenlabs', {}).get('voice_id', ''))
+        self.txt_elevenlabs_voice_id.textChanged.connect(self.on_elevenlabs_voice_id_changed)
+        layout_group_elevenlabs.addWidget(self.txt_elevenlabs_voice_id)
+
+        layout_group_elevenlabs.addWidget(QLabel("Model ID:"))
+        self.txt_elevenlabs_model_id = QLineEdit()
+        self.txt_elevenlabs_model_id.setText(config.get('elevenlabs', {}).get('model_id', 'eleven_flash_v2_5'))
+        self.txt_elevenlabs_model_id.textChanged.connect(self.on_elevenlabs_model_id_changed)
+        layout_group_elevenlabs.addWidget(self.txt_elevenlabs_model_id)
+        
+        # ElevenLabs Voice Settings
+        el_settings_layout = QHBoxLayout()
+        
+        # Stability
+        el_settings_layout.addWidget(QLabel("Stability:"))
+        self.spin_el_stability = QDoubleSpinBox()
+        self.spin_el_stability.setRange(0.0, 1.0)
+        self.spin_el_stability.setSingleStep(0.05)
+        self.spin_el_stability.setValue(config.get('elevenlabs', {}).get('stability', 0.5))
+        self.spin_el_stability.valueChanged.connect(self.on_elevenlabs_params_changed)
+        el_settings_layout.addWidget(self.spin_el_stability)
+        
+        # Similarity Boost
+        el_settings_layout.addWidget(QLabel("Similarity:"))
+        self.spin_el_similarity = QDoubleSpinBox()
+        self.spin_el_similarity.setRange(0.0, 1.0)
+        self.spin_el_similarity.setSingleStep(0.05)
+        self.spin_el_similarity.setValue(config.get('elevenlabs', {}).get('similarity_boost', 0.75))
+        self.spin_el_similarity.valueChanged.connect(self.on_elevenlabs_params_changed)
+        el_settings_layout.addWidget(self.spin_el_similarity)
+        
+        layout_group_elevenlabs.addLayout(el_settings_layout)
+        
+        el_settings_layout2 = QHBoxLayout()
+        
+        # Style
+        el_settings_layout2.addWidget(QLabel("Style:"))
+        self.spin_el_style = QDoubleSpinBox()
+        self.spin_el_style.setRange(0.0, 1.0)
+        self.spin_el_style.setSingleStep(0.05)
+        self.spin_el_style.setValue(config.get('elevenlabs', {}).get('style', 0.0))
+        self.spin_el_style.valueChanged.connect(self.on_elevenlabs_params_changed)
+        el_settings_layout2.addWidget(self.spin_el_style)
+        
+        # Speaker Boost
+        self.chk_el_speaker_boost = QCheckBox("Speaker Boost")
+        self.chk_el_speaker_boost.setChecked(config.get('elevenlabs', {}).get('use_speaker_boost', True))
+        self.chk_el_speaker_boost.toggled.connect(self.on_elevenlabs_params_changed)
+        el_settings_layout2.addWidget(self.chk_el_speaker_boost)
+        
+        layout_group_elevenlabs.addLayout(el_settings_layout2)
+        
+        layout_tts.addWidget(self.group_elevenlabs_config)
 
         # GPT-SoVITS Config
         self.group_sovits_config = QGroupBox("GPT-SoVITS Configuration")
@@ -844,15 +912,38 @@ class SettingsWindow(QWidget):
         sovits_config['repetition_penalty'] = self.spin_sovits_rep_penalty.value()
         self.tts_settings_changed.emit()
 
+    def on_elevenlabs_api_key_changed(self, text):
+        self.config.setdefault('elevenlabs', {})['api_key'] = text
+        self.tts_settings_changed.emit()
+
+    def on_elevenlabs_voice_id_changed(self, text):
+        self.config.setdefault('elevenlabs', {})['voice_id'] = text
+        self.tts_settings_changed.emit()
+
+    def on_elevenlabs_model_id_changed(self, text):
+        self.config.setdefault('elevenlabs', {})['model_id'] = text
+        self.tts_settings_changed.emit()
+
+    def on_elevenlabs_params_changed(self):
+        el_config = self.config.setdefault('elevenlabs', {})
+        el_config['stability'] = self.spin_el_stability.value()
+        el_config['similarity_boost'] = self.spin_el_similarity.value()
+        el_config['style'] = self.spin_el_style.value()
+        el_config['use_speaker_boost'] = self.chk_el_speaker_boost.isChecked()
+        self.tts_settings_changed.emit()
+
     def update_tts_ui_state(self, enabled):
-        self.group_tts_provider.setEnabled(enabled)
+        # Always enable provider selection so it can be configured
+        self.group_tts_provider.setEnabled(True)
         
         provider = self.combo_tts_provider.currentData()
         is_typecast = (provider == 'typecast')
         is_sovits = (provider == 'gpt_sovits')
+        is_elevenlabs = (provider == 'elevenlabs')
         
-        self.group_typecast_config.setVisible(enabled and is_typecast)
-        self.group_sovits_config.setVisible(enabled and is_sovits)
+        self.group_typecast_config.setVisible(is_typecast)
+        self.group_sovits_config.setVisible(is_sovits)
+        self.group_elevenlabs_config.setVisible(is_elevenlabs)
 
     def on_scale_change(self, value):
         scale = value / 100.0
@@ -1202,17 +1293,6 @@ class SettingsWindow(QWidget):
         # Memory and Personality are now in a separate tab, so we don't need to toggle them here
         # self.group_memory.setEnabled(True)
         # self.group_personality.setEnabled(True)
-
-    def update_tts_ui_state(self, enabled):
-        # Always enable configuration groups so they can be edited
-        self.combo_tts_provider.setEnabled(True)
-        
-        provider = self.combo_tts_provider.currentData()
-        is_typecast = (provider == 'typecast')
-        is_sovits = (provider == 'gpt_sovits')
-        
-        self.group_typecast_config.setVisible(is_typecast)
-        self.group_sovits_config.setVisible(is_sovits)
 
     def browse_model_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Live2D Model Folder")

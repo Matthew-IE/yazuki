@@ -53,7 +53,7 @@
     "typecast": {
         "enabled": false,
         "api_key": "",
-        "voice_id": "tc_62a8975e695ad26f7fb514d1"
+        "voice_id": "tc_62203cf8a08b67aac4623e41"
     },
     "gpt_sovits": {
         "endpoint": "http://localhost:9872/",
@@ -68,5 +68,14 @@
         "speed": 1.0,
         "text_split_method": "Slice once every 4 sentences",
         "repetition_penalty": 1.35
+    },
+    "elevenlabs": {
+        "api_key": "",
+        "voice_id": "eVItLK1UvXctxuaRV2Oq",
+        "model_id": "eleven_flash_v2_5",
+        "stability": 0.5,
+        "similarity_boost": 0.75,
+        "style": 0.0,
+        "use_speaker_boost": true
     }
 }

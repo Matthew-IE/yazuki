@@ -257,9 +257,15 @@ class AIManager:
                             
                             if len(chunk) > 0:
                                 # Calculate RMS amplitude
-                                # Normalize to 0-1 range (assuming 16-bit audio)
                                 rms = np.sqrt(np.mean(chunk.astype(float)**2))
-                                amplitude = rms / 32768.0
+                                
+                                # Normalize based on data type
+                                if np.issubdtype(data.dtype, np.integer):
+                                    # Assuming 16-bit PCM
+                                    amplitude = rms / 32768.0
+                                else:
+                                    # Assuming float (-1.0 to 1.0)
+                                    amplitude = rms
                                 
                                 # Scale up a bit to make mouth open more visible
                                 lip_value = min(1.0, amplitude * self.mouth_sensitivity)

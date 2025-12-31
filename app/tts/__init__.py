@@ -1,5 +1,6 @@
 from .typecast_client import TypecastClient
 from .gpt_sovits_client import GPTSovitsClient
+from .elevenlabs_client import ElevenLabsClient
 
 def get_tts_provider(config):
     # Check if TTS is enabled globally
@@ -13,5 +14,7 @@ def get_tts_provider(config):
     
     if provider_type == 'typecast':
         return TypecastClient(config)
+    elif provider_type == 'elevenlabs':
+        return ElevenLabsClient(config)
     else:
         return GPTSovitsClient(config)

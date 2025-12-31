@@ -49,7 +49,7 @@ class SettingsWindow(QWidget):
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
             
-        self.resize(500, 600)
+        self.resize(600, 700)
         
         # Apply Dark Theme
         self.setStyleSheet("""
@@ -425,7 +425,12 @@ class SettingsWindow(QWidget):
         layout_input.addStretch()
         self.tabs.addTab(tab_input, "Input")
 
-        # --- Tab 5: AI ---
+        # --- Tab 5: Chat ---
+        tab_chat = QWidget()
+        self.init_chat_tab(tab_chat)
+        self.tabs.addTab(tab_chat, "Chat")
+
+        # --- Tab 6: AI ---
         tab_ai = QWidget()
         layout_ai = QVBoxLayout(tab_ai)
         
@@ -510,6 +515,16 @@ class SettingsWindow(QWidget):
         
         layout_ai.addWidget(self.group_openrouter_config)
 
+        # Apply initial state
+        self.update_ai_ui_state(self.chk_ai_enabled.isChecked())
+        
+        layout_ai.addStretch()
+        self.tabs.addTab(tab_ai, "AI")
+
+        # --- Tab 7: Personality ---
+        tab_personality = QWidget()
+        layout_personality_tab = QVBoxLayout(tab_personality)
+
         # Memory Control
         self.group_memory = QGroupBox("Memory")
         layout_memory = QVBoxLayout(self.group_memory)
@@ -523,7 +538,7 @@ class SettingsWindow(QWidget):
         btn_clear_memory.clicked.connect(self.clear_memory_requested.emit)
         layout_memory.addWidget(btn_clear_memory)
         
-        layout_ai.addWidget(self.group_memory)
+        layout_personality_tab.addWidget(self.group_memory)
 
         # Personality (System Prompt)
         self.group_personality = QGroupBox("Personality (System Prompt)")
@@ -542,7 +557,7 @@ class SettingsWindow(QWidget):
         btn_load_personality.clicked.connect(self.load_personality_from_file)
         layout_personality.addWidget(btn_load_personality)
         
-        layout_ai.addWidget(self.group_personality)
+        layout_personality_tab.addWidget(self.group_personality)
 
         # Emotions
         self.group_emotions = QGroupBox("Emotions")
@@ -553,20 +568,12 @@ class SettingsWindow(QWidget):
         self.chk_emotions_enabled.toggled.connect(self.on_emotions_enabled_toggled)
         layout_emotions.addWidget(self.chk_emotions_enabled)
         
-        layout_ai.addWidget(self.group_emotions)
-        
-        # Apply initial state
-        self.update_ai_ui_state(self.chk_ai_enabled.isChecked())
-        
-        layout_ai.addStretch()
-        self.tabs.addTab(tab_ai, "AI")
+        layout_personality_tab.addWidget(self.group_emotions)
 
-        # --- Tab 6: Chat ---
-        tab_chat = QWidget()
-        self.init_chat_tab(tab_chat)
-        self.tabs.addTab(tab_chat, "Chat")
+        layout_personality_tab.addStretch()
+        self.tabs.addTab(tab_personality, "Personality")
 
-        # --- Tab 7: TTS ---
+        # --- Tab 8: TTS ---
         tab_tts = QWidget()
         layout_tts = QVBoxLayout(tab_tts)
         
@@ -1192,8 +1199,9 @@ class SettingsWindow(QWidget):
         self.group_ai_config.setVisible(is_openai)
         self.group_ollama_config.setVisible(is_ollama)
         self.group_openrouter_config.setVisible(is_openrouter)
-        self.group_memory.setEnabled(True)
-        self.group_personality.setEnabled(True)
+        # Memory and Personality are now in a separate tab, so we don't need to toggle them here
+        # self.group_memory.setEnabled(True)
+        # self.group_personality.setEnabled(True)
 
     def update_tts_ui_state(self, enabled):
         # Always enable configuration groups so they can be edited
@@ -1275,6 +1283,7 @@ class SettingsWindow(QWidget):
         self.config.setdefault('chat', {})['offset_y'] = y
 
     def on_tab_changed(self, index):
-        # Chat tab is index 5
-        is_chat_tab = (index == 5)
+        # Chat tab is index 4 now
+        # 0: Appearance, 1: Behavior, 2: Window, 3: Input, 4: Chat, 5: AI, 6: Personality, 7: TTS
+        is_chat_tab = (index == 4)
         self.chat_tab_active_changed.emit(is_chat_tab)

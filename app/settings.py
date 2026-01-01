@@ -550,7 +550,30 @@ class SettingsWindow(QWidget):
         self.txt_system_prompt = QPlainTextEdit()
         self.txt_system_prompt.setPlaceholderText("Enter the system prompt here...")
         default_prompt = "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting."
-        self.txt_system_prompt.setPlainText(config.get('ai', {}).get('system_prompt', default_prompt))
+        
+        current_prompt = config.get('ai', {}).get('system_prompt', "")
+        
+        # If prompt is missing or empty, try to load from file
+        if not current_prompt:
+             try:
+                 # Use absolute path to be safe
+                 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                 pers_path = os.path.join(base_path, 'resources', 'personality.txt')
+                 print(f"Checking for personality file at: {pers_path}")
+                 
+                 if os.path.exists(pers_path):
+                     with open(pers_path, 'r', encoding='utf-8') as f:
+                         default_prompt = f.read().strip()
+                     print("Loaded personality from file.")
+                 else:
+                     print("Personality file not found.")
+                 
+                 current_prompt = default_prompt
+             except Exception as e:
+                 print(f"Error loading default personality: {e}")
+                 current_prompt = default_prompt
+
+        self.txt_system_prompt.setPlainText(current_prompt)
         self.txt_system_prompt.setMaximumHeight(100)
         self.txt_system_prompt.textChanged.connect(self.on_system_prompt_changed)
         

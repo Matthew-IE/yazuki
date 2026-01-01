@@ -28,7 +28,27 @@ class AIManager:
         self.setup_client()
         
     def get_effective_system_prompt(self):
-        base_prompt = self.config.get('ai', {}).get('system_prompt', "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting.")
+        default_prompt = "You are a helpful desktop companion named Yazuki. Keep your responses concise (under 20 words if possible) and friendly. Do not use markdown formatting."
+        
+        current_prompt = self.config.get('ai', {}).get('system_prompt', "")
+        
+        # If prompt is missing or empty, try to load from file
+        if not current_prompt:
+             try:
+                 # Use absolute path to be safe
+                 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                 pers_path = os.path.join(base_path, 'resources', 'personality.txt')
+                 
+                 if os.path.exists(pers_path):
+                     with open(pers_path, 'r', encoding='utf-8') as f:
+                         default_prompt = f.read().strip()
+                 
+                 current_prompt = default_prompt
+             except Exception as e:
+                 print(f"Error loading default personality: {e}")
+                 current_prompt = default_prompt
+
+        base_prompt = current_prompt
         if self.config.get('ai', {}).get('emotions_enabled', False):
             return base_prompt + " You can express emotions by starting your response with [Joy], [Anger], [Surprise], or [Neutral]."
         return base_prompt

@@ -47,15 +47,28 @@ class MinecraftManager(QObject):
         options = {
             "host": self.config.get('minecraft', {}).get('host', 'localhost'),
             "port": self.config.get('minecraft', {}).get('port', 25565),
-            "username": self.config.get('minecraft', {}).get('username', 'YazukiBot'),
+            "username": self.config.get('minecraft', {}).get('username', 'Yazuki'),
             "auth": self.config.get('minecraft', {}).get('auth', 'offline'),
-            "version": self.config.get('minecraft', {}).get('version', 'auto')
+            "version": self.config.get('minecraft', {}).get('version', 'auto'),
+            "skin": self.config.get('minecraft', {}).get('skin', '')
         }
         
         self.send_command("connect", {"options": options})
 
     def send_chat(self, message):
         self.send_command("chat", {"message": message})
+
+    def command_follow(self, username):
+        self.send_command("follow", {"username": username})
+
+    def command_stop(self):
+        self.send_command("stop")
+
+    def command_come(self, username):
+        self.send_command("come", {"username": username})
+
+    def send_voice_command(self, username, text):
+        self.send_command("voice", {"username": username, "text": text})
 
     def send_command(self, command, data=None):
         if self.process.state() != QProcess.Running:

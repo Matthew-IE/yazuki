@@ -892,9 +892,17 @@ class SettingsWindow(QWidget):
         # Username
         layout_mc_bot.addWidget(QLabel("Bot Username:"))
         self.txt_mc_username = QLineEdit()
-        self.txt_mc_username.setText(config.get('minecraft', {}).get('username', 'YazukiBot'))
+        self.txt_mc_username.setText(config.get('minecraft', {}).get('username', 'Yazuki'))
         self.txt_mc_username.textChanged.connect(self.on_mc_username_changed)
         layout_mc_bot.addWidget(self.txt_mc_username)
+
+        # Owner Username
+        layout_mc_bot.addWidget(QLabel("Owner Username (for voice commands):"))
+        self.txt_mc_owner = QLineEdit()
+        self.txt_mc_owner.setText(config.get('minecraft', {}).get('owner', ''))
+        self.txt_mc_owner.setPlaceholderText("Your Minecraft Name")
+        self.txt_mc_owner.textChanged.connect(self.on_mc_owner_changed)
+        layout_mc_bot.addWidget(self.txt_mc_owner)
         
         # Auth
         layout_mc_bot.addWidget(QLabel("Authentication:"))
@@ -908,6 +916,14 @@ class SettingsWindow(QWidget):
             self.combo_mc_auth.setCurrentIndex(index)
         self.combo_mc_auth.currentIndexChanged.connect(self.on_mc_auth_changed)
         layout_mc_bot.addWidget(self.combo_mc_auth)
+        
+        # Skin Name (SkinRestorer)
+        layout_mc_bot.addWidget(QLabel("Skin Name (SkinRestorer):"))
+        self.txt_mc_skin = QLineEdit()
+        self.txt_mc_skin.setPlaceholderText("e.g. Yazuki or URL")
+        self.txt_mc_skin.setText(config.get('minecraft', {}).get('skin', ''))
+        self.txt_mc_skin.textChanged.connect(self.on_mc_skin_changed)
+        layout_mc_bot.addWidget(self.txt_mc_skin)
         
         layout_minecraft.addWidget(group_mc_bot)
         
@@ -1083,9 +1099,17 @@ class SettingsWindow(QWidget):
         self.config.setdefault('minecraft', {})['username'] = text
         self.minecraft_settings_changed.emit()
 
+    def on_mc_owner_changed(self, text):
+        self.config.setdefault('minecraft', {})['owner'] = text
+        self.minecraft_settings_changed.emit()
+
     def on_mc_auth_changed(self, index):
         auth = self.combo_mc_auth.currentData()
         self.config.setdefault('minecraft', {})['auth'] = auth
+        self.minecraft_settings_changed.emit()
+
+    def on_mc_skin_changed(self, text):
+        self.config.setdefault('minecraft', {})['skin'] = text
         self.minecraft_settings_changed.emit()
 
     def update_minecraft_status(self, status):

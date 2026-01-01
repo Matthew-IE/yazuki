@@ -136,7 +136,7 @@ class AIManager:
             print(status)
         self.audio_data.append(indata.copy())
 
-    def stop_recording_and_process(self, callback, lip_sync_callback=None):
+    def stop_recording_and_process(self, callback, lip_sync_callback=None, user_text_callback=None):
         if not self.recording: return
         self.recording = False
         self.record_thread.join()
@@ -147,10 +147,10 @@ class AIManager:
             return
 
         # Process in a separate thread to not block UI
-        process_thread = threading.Thread(target=self._process_audio, args=(callback, lip_sync_callback))
+        process_thread = threading.Thread(target=self._process_audio, args=(callback, lip_sync_callback, user_text_callback))
         process_thread.start()
 
-    def _process_audio(self, callback, lip_sync_callback=None):
+    def _process_audio(self, callback, lip_sync_callback=None, user_text_callback=None):
         try:
             # Flatten audio data
             audio_np = np.concatenate(self.audio_data, axis=0).flatten()
@@ -192,6 +192,9 @@ class AIManager:
                     return
 
             print(f"User said: {user_text}")
+            
+            if user_text_callback:
+                user_text_callback(user_text)
             
             if not user_text.strip():
                 callback("...", "Neutral", 2.0)

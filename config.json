@@ -81,9 +81,10 @@
         "enabled": false,
         "host": "localhost",
         "port": 25565,
-        "username": "YazukiBot",
+        "username": "Yazuki",
         "auth": "offline",
         "version": "auto",
-        "respond_to_chat": true
+        "respond_to_chat": true,
+        "skin": "https://minesk.in/756a7acd6e3e457397586ede64031be5"
     }
 }

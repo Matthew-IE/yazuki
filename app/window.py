@@ -151,8 +151,25 @@ class OverlayWindow(QMainWindow):
                 self.renderer.set_status_text("Thinking...")
                 self.ai_manager.stop_recording_and_process(
                     self.ai_response_received.emit,
-                    self.lip_sync_updated.emit
+                    self.lip_sync_updated.emit,
+                    self.handle_user_speech
                 )
+
+    def handle_user_speech(self, text):
+        # Check if Minecraft is connected and enabled
+        if not self.config.get('minecraft', {}).get('enabled', False):
+            return
+            
+        # We need to know who to follow. 
+        # If 'owner' is set in config, use it. Otherwise, we can't really follow "me".
+        owner = self.config.get('minecraft', {}).get('owner', '')
+        
+        if owner:
+            # Send voice command to Minecraft Manager
+            # The manager will send it to the bot, which has natural language processing
+            self.mc_manager.send_voice_command(owner, text)
+        else:
+            print("Minecraft Owner not set. Voice commands for Minecraft might not work.")
 
     def set_ai_enabled(self, enabled):
         self.config.setdefault('ai', {})['enabled'] = enabled
@@ -181,6 +198,10 @@ class OverlayWindow(QMainWindow):
         self.mc_manager.send_chat(text)
 
     def on_mc_chat(self, username, message):
+        # Check if AI is enabled
+        if not self.config.get('ai', {}).get('enabled', False):
+            return
+
         # Check if we should respond
         if not self.config.get('minecraft', {}).get('respond_to_chat', True):
             return

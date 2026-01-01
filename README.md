@@ -26,10 +26,11 @@ This project emphasizes **privacy and local control**, offering full support for
         *   **Typecast.ai** (Cloud, diverse character voices).
     *   **Lip Sync**: Real-time mouth movement synchronized with the character's voice (supports both local and cloud audio).
 *   **Minecraft Integration**:
-    *   **Bot Companion**: Yazuki can join your Minecraft server as a bot using Mineflayer.
-    *   **Chat Bridge**: She reads in-game chat and responds intelligently.
-    *   **Status Monitoring**: See connection status directly in the settings.
-    *   **Bear in mind that the current implementation of Mineflayer is just bare bones.**
+    *   **Bot Companion**: Yazuki joins your server as a fully functional bot.
+    *   **Pathfinding**: She can walk, follow you, and navigate obstacles using `mineflayer-pathfinder`.
+    *   **Voice Commands**: Tell her to "Follow me", "Stop", or "Come here" using your voice.
+    *   **Skin Support**: Full support for custom skins via SkinRestorer URLs.
+    *   **Chat Bridge**: She reads and responds to in-game chat intelligently.
 *   **Interactive**:
     *   **Eye Tracking**: The character follows your mouse cursor.
     *   **Click-Through**: Toggle "ghost mode" to click through the character to windows behind her.
@@ -43,13 +44,23 @@ This project emphasizes **privacy and local control**, offering full support for
 
 ##  Minecraft Integration
 
-Yazuki can now join you in Minecraft!
+Yazuki can now join you in Minecraft with advanced capabilities!
 
 <img src="resources/media/yazukimc.png" width="100%" />
 
-*   **Connect**: Configure the server IP and port in the "Minecraft" settings tab.
-*   **Chat**: Yazuki listens to the game chat. When other players speak, she processes the text and replies back in-game.
-*   **Voice**: Her response is also spoken aloud on your desktop, creating a seamless bridge between the game and your companion.
+### Features
+*   **Movement & Pathfinding**: Yazuki isn't just a statue anymore. She can navigate the world intelligently.
+*   **Voice Control**: Hold your push-to-talk key (default 'V') and say commands like:
+    *   *"Yazuki, follow me!"*
+    *   *"Stop following."*
+    *   *"Come here."*
+*   **Skin Customization**: You can set a custom skin URL (SkinRestorer format) in the settings.
+*   **Chat Interaction**: She listens to the game chat and responds to players.
+
+### Setup
+1.  **Connection**: Configure the server IP and port in the "Minecraft" settings tab.
+2.  **Owner**: **Crucial!** Set your Minecraft in-game name in the **"Owner Username"** field. This allows her to know who to follow when you say "Follow me".
+3.  **Skin**: (Optional) Paste a skin URL (e.g., from minesk.in) to give her a custom look.
 
 ---
 
@@ -108,7 +119,7 @@ Before installing, ensure you have the following:
 6.  **Configure Model Path**
     *   Open `config.json` and update `"model_folder"` to point to your model's directory.
     ```json
-    "model_folder": "resources/model/my_character",
+    "model_folder": "resources/model/live2d/my_character",
     ```
 
 ---
@@ -141,6 +152,8 @@ Access the **Settings** by right-clicking the system tray icon.
 *   **Host/Port**: Server address (e.g., `localhost`, `25565`).
 *   **Auth**: "Offline" (Cracked/Local) or "Microsoft" (Official).
 *   **Bot Name**: The name Yazuki will use in-game.
+*   **Owner Username**: Your in-game name (Required for voice commands like "Follow me").
+*   **Skin URL**: A direct URL to a skin file (supports SkinRestorer format).
 
 ###  Controls
 *   **V (Hold)**: Push-to-Talk (Configurable).
